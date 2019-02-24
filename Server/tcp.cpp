@@ -14,7 +14,7 @@ tcp_server::~tcp_server()
 {
 }
 
-int tcp_server::port()
+int tcp_server::port() const
 {
 	return accepting_port;
 }
@@ -66,6 +66,8 @@ bool tcp_server::handle_error(WSA_ERROR error)
 		closesocket(active_socket);
 		FD_CLR(active_socket, &client_set);
 		break;
+	default: 
+		break;
 	}
 
 	std::cout << error << std::endl;
@@ -83,7 +85,12 @@ bool tcp_server::socket_bind(SOCKET& sock, int bind_port)
 	return false;
 }
 
-bool tcp_server::socket_startup(WSADATA& sock_data, SOCKET& sock)
+bool tcp_server::wsa_startup(WSADATA& sock_data)
+{
+	return WSAStartup(MAKEWORD(2, 2), &sock_data) == 0;
+}
+
+bool tcp_server::initialize_socket(SOCKET& sock)
 {
 	return false;
 }

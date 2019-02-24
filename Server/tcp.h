@@ -18,7 +18,7 @@ public:
 	tcp_server(int);
 	~tcp_server();
 
-	int port();
+	int port() const;
 	void port(int);
 
 private:
@@ -36,8 +36,21 @@ private:
 	bool handle_error(WSA_ERROR);
 	bool socket_listen(SOCKET&);
 	bool socket_bind(SOCKET&, int);
-	bool socket_startup(WSADATA&, SOCKET&);
 
+	/// <summary>
+	/// Initialize Windows Socket Api to version 2.2
+	/// </summary>
+	/// <param name="sock_data">The WSA Data that will be started to version 2.2</param>
+	/// <returns>true: successfully found win-sock, false: could not find win-sock dll</returns>
+	bool wsa_startup(WSADATA&);
+
+	/// <summary>
+	/// Initializes the win-sock to AF_INET and SOCK_STREAN
+	/// </summary>
+	/// <param name="sock">The socket that will be initialized</param>
+	/// <returns>Whether the function succeeds (1/0)</returns>
+	bool initialize_socket(SOCKET&);
+	
 };
 
 class tcp_client {
