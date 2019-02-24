@@ -92,7 +92,8 @@ bool tcp_server::wsa_startup(WSADATA& sock_data)
 
 bool tcp_server::initialize_socket(SOCKET& sock)
 {
-	return false;
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	return sock != INVALID_SOCKET;
 }
 
 
@@ -106,7 +107,7 @@ tcp_client::tcp_client()
 {
 }
 
-int tcp_client::port()
+int tcp_client::port() const
 {
 	return connection_port;
 }
@@ -116,7 +117,7 @@ void tcp_client::port(int new_port)
 	connection_port = new_port;
 }
 
-std::string tcp_client::ip()
+std::string tcp_client::ip() const
 {
 	return ip_address;
 }
