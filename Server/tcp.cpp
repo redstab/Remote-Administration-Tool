@@ -1,5 +1,7 @@
 #include "tcp.h"
 
+//Server
+
 tcp_server::tcp_server()
 {
 }
@@ -24,6 +26,8 @@ void tcp_server::port(int new_port)
 
 bool tcp_server::check_error(int error_code)
 {
+
+
 	return false;
 }
 
@@ -43,7 +47,7 @@ bool tcp_server::socket_startup(WSADATA& sock_data, SOCKET& sock)
 }
 
 
-
+// Client
 
 tcp_client::tcp_client(std::string connection_ip, int connection_port)
 {
@@ -81,4 +85,12 @@ bool tcp_client::socket_startup(WSADATA& sock_data, SOCKET& sock)
 bool tcp_client::socket_connect(SOCKET& sock, sockaddr_in& sock_hint)
 {
 	return false;
+}
+
+//WSA_ERROR
+
+WSA_ERROR::WSA_ERROR(int error_code, std::string error_msg)
+{
+	code = error_code;
+	msg = error_msg;
 }

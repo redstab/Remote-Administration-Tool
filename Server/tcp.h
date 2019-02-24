@@ -1,6 +1,17 @@
 #pragma once
 #include "precompile.h"
 
+struct WSA_ERROR {
+	WSA_ERROR(int, std::string);
+
+	int code;
+	std::string msg;
+};
+
+inline std::ostream& operator<<(std::ostream &os, const WSA_ERROR &error) {
+	return os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"";
+}
+
 class tcp_server {
 public:
 	tcp_server();
