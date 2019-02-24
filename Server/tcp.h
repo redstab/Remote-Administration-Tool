@@ -12,7 +12,7 @@ public:
 
 private:
 
-	int port = 0;
+	int accepting_port = 0;
 	bool verbosity = true;
 
 	WSADATA socket_data;
@@ -46,7 +46,7 @@ private:
 	SOCKET connection_socket;
 	sockaddr_in socket_hint;
 	std::string ip_address;
-	int port;
+	int connection_port = 0;
 
 	bool socket_startup(WSADATA&, SOCKET&);
 	bool socket_connect(SOCKET&, sockaddr_in&);
