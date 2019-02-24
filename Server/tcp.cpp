@@ -2,12 +2,38 @@
 
 //Server
 
-tcp_server::tcp_server()
-{
-}
-
 tcp_server::tcp_server(int port)
 {
+	if (wsa_startup(socket_data))
+	{
+		if (initialize_socket(main_socket))
+		{
+			if (socket_bind(main_socket, port))
+			{
+				if (socket_listen(main_socket))
+				{
+					FD_ZERO(&client_set);
+					FD_SET(main_socket, &client_set);
+				}
+				else
+				{
+					exit(-4);
+				}
+			}
+			else
+			{
+				exit(-3);
+			}
+		}
+		else
+		{
+			exit(-2);
+		}
+	}
+	else
+	{
+		exit(-1);
+	}
 }
 
 tcp_server::~tcp_server()
@@ -18,7 +44,7 @@ tcp_server::~tcp_server()
 	WSACleanup();
 }
 
-int tcp_server::port() const
+int tcp_server::port()
 {
 	return accepting_port;
 }
@@ -105,6 +131,14 @@ bool tcp_server::initialize_socket(SOCKET & sock)
 	return sock != INVALID_SOCKET;
 }
 
+bool tcp_server::start_manager()
+{
+	FD_ZERO(&client_set);
+	FD_SET(main_socket,&client_set);
+	manager_thread = std::thread();
+	return manager_thread.joinable();
+}
+
 
 // Client
 
@@ -116,7 +150,7 @@ tcp_client::tcp_client()
 {
 }
 
-int tcp_client::port() const
+int tcp_client::port()
 {
 	return connection_port;
 }
@@ -126,7 +160,7 @@ void tcp_client::port(int new_port)
 	connection_port = new_port;
 }
 
-std::string tcp_client::ip() const
+std::string tcp_client::ip()
 {
 	return ip_address;
 }

@@ -14,22 +14,28 @@ inline std::ostream& operator<<(std::ostream &os, const WSA_ERROR &error) {
 
 class tcp_server {
 public:
-	tcp_server();
+	tcp_server(){}
 	tcp_server(int);
 	~tcp_server();
 
-	int port() const;
+	int port();
 	void port(int);
+
+	bool startup();
+	bool initilize();
+	bool listen();
+	bool start_manager();
+	bool bind();
 
 private:
 
 	int accepting_port = 0;
-	bool verbosity = true;
+	bool output_verbosity = true;
 
-	WSADATA socket_data;
-	fd_set client_set;
-	SOCKET main_socket;
-	SOCKET active_socket;
+	WSADATA socket_data{};
+	fd_set client_set{};
+	SOCKET main_socket{};
+	SOCKET active_socket{};
 	std::thread manager_thread;
 
 	/// <summary>
@@ -74,7 +80,12 @@ private:
 	/// <param name="sock">The socket that will be initialized</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool initialize_socket(SOCKET&);
-	
+
+	/// <summary>
+	/// Starts the manager_thread and (clear & set) the fd_set
+	/// </summary>
+	/// <returns>Whether the function succeeds (Bool)</returns>
+	bool start_manager();
 };
 
 class tcp_client {
@@ -84,9 +95,9 @@ public:
 	tcp_client(std::string, int);
 	tcp_client();
 
-	int port() const;
+	int port();
 	void port(int);
-	std::string ip() const;
+	std::string ip();
 	void ip(std::string);
 
 private:
