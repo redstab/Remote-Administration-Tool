@@ -77,12 +77,17 @@ bool tcp_server::handle_error(WSA_ERROR error)
 
 bool tcp_server::socket_listen(SOCKET& sock)
 {
-	return false;
+	return ::listen(sock, SOMAXCONN) != SOCKET_ERROR;
 }
 
 bool tcp_server::socket_bind(SOCKET& sock, int bind_port)
 {
-	return false;
+	sockaddr_in socket_hint{};
+	socket_hint.sin_family = AF_INET;
+	socket_hint.sin_port = htons(bind_port);
+	socket_hint.sin_addr.S_un.S_addr = INADDR_ANY;
+
+	return ::bind(sock, reinterpret_cast<sockaddr *>(&socket_hint), sizeof(socket_hint)) != SOCKET_ERROR;
 }
 
 bool tcp_server::wsa_startup(WSADATA& sock_data)

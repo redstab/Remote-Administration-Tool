@@ -60,9 +60,9 @@ public:
 	tcp_client(std::string, int);
 	tcp_client();
 
-	int port();
+	int port() const;
 	void port(int);
-	std::string ip();
+	std::string ip() const;
 	void ip(std::string);
 
 private:
