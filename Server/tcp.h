@@ -3,7 +3,7 @@
 
 struct WSA_ERROR {
 	WSA_ERROR(int, std::string);
-
+	WSA_ERROR(int);
 	int code;
 	std::string msg;
 };
@@ -32,7 +32,8 @@ private:
 	SOCKET active_socket;
 	std::thread manager_thread;
 
-	bool check_error(int);
+	WSA_ERROR format_error(int);
+	bool handle_error(WSA_ERROR);
 	bool socket_listen(SOCKET&);
 	bool socket_bind(SOCKET&, int);
 	bool socket_startup(WSADATA&, SOCKET&);

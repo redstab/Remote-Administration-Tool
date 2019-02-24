@@ -24,10 +24,52 @@ void tcp_server::port(int new_port)
 	accepting_port = new_port;
 }
 
-bool tcp_server::check_error(int error_code)
+WSA_ERROR tcp_server::format_error(int error_code)
 {
+	if (error_code == -1) {
+		
+		int error{ WSAGetLastError() };
+		char msg_buf[256]{ '\0' };
+		
+		FormatMessageA(
+			
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS |
+			FORMAT_MESSAGE_MAX_WIDTH_MASK,
+			nullptr,
+			error,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			msg_buf,
+			sizeof(msg_buf),
+			nullptr
 
+		);
 
+		return WSA_ERROR(error, std::string(msg_buf));
+
+	}
+	else {
+		
+		return WSA_ERROR(0);
+	
+	}
+
+	
+}
+
+bool tcp_server::handle_error(WSA_ERROR error)
+{
+	switch (error.code) {
+	case 0: // No Error
+		return true;
+	case 10054:
+		closesocket(active_socket);
+		FD_CLR(active_socket, &client_set);
+		break;
+	}
+
+	std::cout << error << std::endl;
+	
 	return false;
 }
 
@@ -93,4 +135,10 @@ WSA_ERROR::WSA_ERROR(int error_code, std::string error_msg)
 {
 	code = error_code;
 	msg = error_msg;
+}
+
+WSA_ERROR::WSA_ERROR(int error_code)
+{
+	code = error_code;
+	msg = "";
 }
