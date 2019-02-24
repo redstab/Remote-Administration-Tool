@@ -65,11 +65,12 @@ void tcp_client::port(int new_port)
 
 std::string tcp_client::ip()
 {
-	return std::string();
+	return ip_address;
 }
 
 void tcp_client::ip(std::string new_ip)
 {
+	ip_address = new_ip;
 }
 
 bool tcp_client::socket_startup(WSADATA& sock_data, SOCKET& sock)
