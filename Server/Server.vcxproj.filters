@@ -23,5 +23,8 @@
     <ClInclude Include="precompile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tcp_interface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
