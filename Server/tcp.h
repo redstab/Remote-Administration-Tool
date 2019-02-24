@@ -32,23 +32,47 @@ private:
 	SOCKET active_socket;
 	std::thread manager_thread;
 
+	/// <summary>
+	/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
+	/// </summary>
+	/// <param name="error_code">A integer containing potentially a error_code, can also be a SOCKET or return value from a socket manipulating function such as recv(), send()</param>
+	/// <returns></returns>
 	WSA_ERROR format_error(int);
+
+	/// <summary>
+	/// Handles the specify WSA_ERROR that is inputted
+	/// </summary>
+	/// <param name="error">A constructed WSA_ERROR struct</param>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool handle_error(WSA_ERROR);
+
+	/// <summary>
+	/// Places the input socket in a state which allows it to listen for incoming connections
+	/// </summary>
+	/// <param name="sock">A bound unconnected socket</param>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool socket_listen(SOCKET&);
+
+	/// <summary>
+	/// Binds socket to a specified port to allow all incoming connections through 
+	/// </summary>
+	/// <param name="sock">The socket that will be bound</param>
+	/// <param name="bind_port">The port that will be bound to</param>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool socket_bind(SOCKET&, int);
 
 	/// <summary>
 	/// Initialize Windows Socket Api to version 2.2
 	/// </summary>
 	/// <param name="sock_data">The WSA Data that will be started to version 2.2</param>
-	/// <returns>true: successfully found win-sock, false: could not find win-sock dll</returns>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool wsa_startup(WSADATA&);
 
 	/// <summary>
 	/// Initializes the win-sock to AF_INET and SOCK_STREAN
 	/// </summary>
 	/// <param name="sock">The socket that will be initialized</param>
-	/// <returns>Whether the function succeeds (1/0)</returns>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool initialize_socket(SOCKET&);
 	
 };
