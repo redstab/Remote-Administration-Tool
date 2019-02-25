@@ -1,7 +1,6 @@
 // Server
 
-#include "precompile.h"
-#include "tcp.h"
+#include "..\Library\tcp.h"
 
 int main()
 {

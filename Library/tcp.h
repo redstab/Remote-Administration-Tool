@@ -1,5 +1,5 @@
 #pragma once
-#include "precompile.h"
+#include "..\Server/precompile.h"
 
 struct WSA_ERROR {
 	WSA_ERROR(int, std::string);
@@ -9,7 +9,9 @@ struct WSA_ERROR {
 };
 
 inline std::ostream& operator<<(std::ostream &os, const WSA_ERROR &error) {
-	return os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"";
+	
+	return (error.code == 0 && error.msg.empty()) ? os : os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
+
 }
 
 class tcp_server {
@@ -138,7 +140,7 @@ private:
 	/// </summary>
 	/// <param name="sock_data">The WSA struct that will be started</param>
 	/// <param name="sock">The socket that will be initialized</param>
-	/// <returns></returns>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool socket_startup(WSADATA&, SOCKET&);
 
 	/// <summary>
@@ -146,6 +148,20 @@ private:
 	/// </summary>
 	/// <param name="sock">The socket that will connect</param>
 	/// <param name="sock_hint">The struct containing the destination details</param>
-	/// <returns></returns>
+	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool socket_connect(SOCKET&, sockaddr_in&);
+
+		/// <summary>
+	/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
+	/// </summary>
+	/// <param name="error_code">A integer containing potentially a error_code, can also be a SOCKET or return value from a socket manipulating function such as recv(), send()</param>
+	/// <returns>The constructed error structure</returns>
+	WSA_ERROR format_error(int);
+
+	/// <summary>
+	/// Handles the specify WSA_ERROR that is inputted
+	/// </summary>
+	/// <param name="error">A constructed WSA_ERROR struct</param>
+	/// <returns>Whether the function succeeds (Bool)</returns>
+	bool handle_error(WSA_ERROR);
 };
