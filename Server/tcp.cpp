@@ -54,11 +54,36 @@ void tcp_server::port(int new_port)
 	accepting_port = new_port;
 }
 
+bool tcp_server::startup()
+{
+	return wsa_startup(socket_data);
+}
+
+bool tcp_server::initilize()
+{
+	return initialize_socket(main_socket);
+}
+
+bool tcp_server::listen()
+{
+	return socket_listen(main_socket);
+}
+
+bool tcp_server::manager()
+{
+	return start_manager();
+}
+
+bool tcp_server::bind()
+{
+	return socket_bind(main_socket, accepting_port);
+}
+
 WSA_ERROR tcp_server::format_error(int error_code)
 {
 	if (error_code == -1) {
 
-		int error{ WSAGetLastError() };
+		auto error{ WSAGetLastError() };
 		char msg_buf[256]{ '\0' };
 
 		FormatMessageA(

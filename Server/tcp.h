@@ -14,7 +14,7 @@ inline std::ostream& operator<<(std::ostream &os, const WSA_ERROR &error) {
 
 class tcp_server {
 public:
-	tcp_server(){}
+	tcp_server() = default;
 	tcp_server(int);
 	~tcp_server();
 
@@ -24,7 +24,7 @@ public:
 	bool startup();
 	bool initilize();
 	bool listen();
-	bool start_manager();
+	bool manager();
 	bool bind();
 
 private:
