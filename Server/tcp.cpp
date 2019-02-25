@@ -44,12 +44,12 @@ tcp_server::~tcp_server()
 	WSACleanup();
 }
 
-int tcp_server::port() const
+int tcp_server::get_port() const
 {
 	return accepting_port;
 }
 
-void tcp_server::port(int new_port)
+void tcp_server::set_port(int new_port)
 {
 	accepting_port = new_port;
 }
@@ -214,12 +214,12 @@ tcp_client::tcp_client()
 {
 }
 
-int tcp_client::port() const
+int tcp_client::get_port() const
 {
 	return connection_port;
 }
 
-void tcp_client::port(int new_port)
+void tcp_client::set_port(int new_port)
 {
 	connection_port = new_port;
 }

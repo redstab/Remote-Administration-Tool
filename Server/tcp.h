@@ -18,8 +18,8 @@ public:
 	tcp_server(int);
 	~tcp_server();
 
-	int port() const;
-	void port(int);
+	int get_port() const;
+	void set_port(int);
 
 	bool startup();
 	bool initialize();
@@ -42,7 +42,7 @@ private:
 	/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
 	/// </summary>
 	/// <param name="error_code">A integer containing potentially a error_code, can also be a SOCKET or return value from a socket manipulating function such as recv(), send()</param>
-	/// <returns></returns>
+	/// <returns>The constructed error structure</returns>
 	WSA_ERROR format_error(int);
 
 	/// <summary>
@@ -60,10 +60,10 @@ private:
 	bool socket_listen(SOCKET&);
 
 	/// <summary>
-	/// Binds socket to a specified port to allow all incoming connections through 
+	/// Binds socket to a specified get_port to allow all incoming connections through 
 	/// </summary>
 	/// <param name="sock">The socket that will be bound</param>
-	/// <param name="bind_port">The port that will be bound to</param>
+	/// <param name="bind_port">The get_port that will be bound to</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool socket_bind(SOCKET&, int);
 
@@ -100,8 +100,8 @@ public:
 	tcp_client(std::string, int);
 	tcp_client();
 
-	int port() const;
-	void port(int);
+	int get_port() const;
+	void set_port(int);
 	std::string ip() const;
 	void ip(std::string);
 

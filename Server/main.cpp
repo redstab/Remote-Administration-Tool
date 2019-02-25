@@ -7,7 +7,7 @@ int main()
 {
 	tcp_server main;
 
-	main.port(1337);
+	main.set_port(1337);
 
 	if (main.startup()) {
 
@@ -21,7 +21,7 @@ int main()
 			if (main.bind())
 			{
 
-				std::cout << "Server successfully bound to port {" << main.port() << "}\n";
+				std::cout << "Server successfully bound to get_port {" << main.get_port() << "}\n";
 
 				if (main.listen())
 				{
@@ -48,7 +48,7 @@ int main()
 			}
 			else
 			{
-				std::cout << "Server could not bind to port {" << main.port() << "}\n";
+				std::cout << "Server could not bind to get_port {" << main.get_port() << "}\n";
 			}
 		}
 		else
