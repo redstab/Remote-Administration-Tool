@@ -44,7 +44,7 @@ tcp_server::~tcp_server()
 	WSACleanup();
 }
 
-int tcp_server::port()
+int tcp_server::port() const
 {
 	return accepting_port;
 }
@@ -59,7 +59,7 @@ bool tcp_server::startup()
 	return wsa_startup(socket_data);
 }
 
-bool tcp_server::initilize()
+bool tcp_server::initialize()
 {
 	return initialize_socket(main_socket);
 }
@@ -83,7 +83,7 @@ WSA_ERROR tcp_server::format_error(int error_code)
 {
 	if (error_code == -1) {
 
-		auto error{ WSAGetLastError() };
+		auto const error{ WSAGetLastError() };
 		char msg_buf[256]{ '\0' };
 
 		FormatMessageA(
@@ -160,8 +160,48 @@ bool tcp_server::start_manager()
 {
 	FD_ZERO(&client_set);
 	FD_SET(main_socket,&client_set);
-	manager_thread = std::thread();
+	manager_thread = std::thread(&tcp_server::async_handler, this);
 	return manager_thread.joinable();
+}
+
+void tcp_server::async_handler()
+{
+	while(true)
+	{
+		auto local_set = client_set;
+		auto socket_count = select(0, &local_set,nullptr, nullptr,nullptr);
+
+		for(auto i = 0; i < socket_count; i++)
+		{
+			
+			auto current_socket = local_set.fd_array[i];
+
+			if(current_socket == main_socket)
+			{
+				
+				// New Client
+
+				sockaddr_in socket_address{};
+				char host[NI_MAXHOST]{};
+				int address_len = sizeof(socket_address);
+				auto client = accept(main_socket, reinterpret_cast<sockaddr*>(&socket_address), &address_len);
+
+				FD_SET(client, &client_set);
+
+				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
+
+				std::cout << "New Client {" << client << ", " << host <<"}" << std::endl;
+			}
+			else
+			{
+				// Message
+				char buf[4096]{};
+				::recv(current_socket, buf, 4096, 0);
+				std::cout << "Msg{"<< buf << "}"<< std::endl;
+			}
+
+		}
+	}
 }
 
 
@@ -175,7 +215,7 @@ tcp_client::tcp_client()
 {
 }
 
-int tcp_client::port()
+int tcp_client::port() const
 {
 	return connection_port;
 }
@@ -185,7 +225,7 @@ void tcp_client::port(int new_port)
 	connection_port = new_port;
 }
 
-std::string tcp_client::ip()
+std::string tcp_client::ip() const
 {
 	return ip_address;
 }

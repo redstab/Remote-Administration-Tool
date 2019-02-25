@@ -18,11 +18,11 @@ public:
 	tcp_server(int);
 	~tcp_server();
 
-	int port();
+	int port() const;
 	void port(int);
 
 	bool startup();
-	bool initilize();
+	bool initialize();
 	bool listen();
 	bool manager();
 	bool bind();
@@ -86,6 +86,11 @@ private:
 	/// </summary>
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool start_manager();
+
+	/// <summary>
+	/// The handler that accepts new users by utilizing authentication
+	/// </summary>
+	void async_handler();
 };
 
 class tcp_client {
@@ -95,9 +100,9 @@ public:
 	tcp_client(std::string, int);
 	tcp_client();
 
-	int port();
+	int port() const;
 	void port(int);
-	std::string ip();
+	std::string ip() const;
 	void ip(std::string);
 
 private:
