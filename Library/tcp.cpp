@@ -54,6 +54,16 @@ void tcp_server::set_port(int new_port)
 	accepting_port = new_port;
 }
 
+void tcp_server::list()
+{
+	std::cout << "{";
+	for(auto i = 0; i < client_set.fd_count; i++)
+	{
+		std::cout << i << ":" << client_set.fd_array[i] << " ";
+	}
+	std::cout << "}\n";
+}
+
 bool tcp_server::startup()
 {
 	return wsa_startup(socket_data);
@@ -77,6 +87,29 @@ bool tcp_server::manager()
 bool tcp_server::bind()
 {
 	return socket_bind(main_socket, accepting_port);
+}
+
+std::string tcp_server::recv(int current_socket)
+{
+	active_socket = current_socket;
+	fd_set test_set;
+	FD_ZERO(&test_set);
+	FD_SET(active_socket, &test_set);
+	timeval tv{0,500};
+	int readable = select(0, &test_set, nullptr, nullptr, &tv);
+	if(readable)
+	{
+		char buf[4096]{};
+		if(handle_error(format_error(::recv(current_socket, buf, 2, 0))))
+		{
+			return std::string(buf);
+		}
+	}else
+	{
+		std::cout << "No data in socket " << readable << std::endl;
+	}
+
+	return std::string();
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)
@@ -103,7 +136,7 @@ WSA_ERROR tcp_server::format_error(int error_code)
 		return WSA_ERROR(error, std::string(msg_buf));
 
 	}
-
+	std::cout << std::endl << "<"<< error_code << ">"<< std::endl;
 	return WSA_ERROR(0);
 
 }
@@ -188,17 +221,6 @@ void tcp_server::async_handler()
 
 				std::cout << "New Client {" << client << ", " << host <<"}" << std::endl;
 			}
-			else
-			{
-				// Message
-				char buf[4096]{};
-				if(handle_error(format_error(::recv(current_socket, buf, 4096, 0))))
-				{
-					std::cout << "Msg{"<< buf << "}"<< std::endl;
-				}
-				
-			}
-
 		}
 	}
 }

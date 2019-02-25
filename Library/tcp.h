@@ -23,11 +23,15 @@ public:
 	int get_port() const;
 	void set_port(int);
 
+	void list();
+
 	bool startup();
 	bool initialize();
 	bool listen();
 	bool manager();
 	bool bind();
+
+	std::string recv(int current_socket);
 
 private:
 

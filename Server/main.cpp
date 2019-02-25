@@ -32,8 +32,12 @@ int main()
 
 						while (true)
 						{
-							Sleep(10000);
-							std::cout << "10 second has passed" << std::endl;
+							main.list();
+							std::string socket;
+							std::cout << "<>";
+							std::cin >> socket;
+
+							std::cout << main.recv(std::stoi(socket)) << std::endl << std::endl;
 						}
 					}
 

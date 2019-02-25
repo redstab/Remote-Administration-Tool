@@ -23,10 +23,11 @@ int main()
 		{
 			
 			std::cout << "Client has connected to the server\n";
-
-			main.send("test", "head");
-
-			std::cin.get();
+			while(true)
+			{
+				std::cin.get();
+				main.send("1111111", "head");
+			}
 
 		}
 		else
