@@ -14,7 +14,7 @@ inline std::ostream& operator<<(std::ostream &os, const WSA_ERROR &error) {
 
 class tcp_server {
 public:
-	tcp_server() = default;
+	tcp_server(){};
 	tcp_server(int);
 	~tcp_server();
 
@@ -97,13 +97,33 @@ class tcp_client {
 
 public:
 
+	tcp_client(){};
 	tcp_client(std::string, int);
-	tcp_client();
 
-	int get_port() const;
+	int get_port();
 	void set_port(int);
-	std::string ip() const;
-	void ip(std::string);
+	std::string get_ip();
+	void set_ip(std::string);
+
+	/// <summary>
+	/// Cover function for starting up socket
+	/// </summary>
+	/// <returns>Whether the function succeeds (Bool)</returns>
+	bool startup();
+
+	/// <summary>
+	/// Cover function for connecting to ip and port specified in constructor or in set_x (x = port|ip)
+	/// </summary>
+	/// <returns>Whether the function succeeds (Bool)</returns>
+	bool connect();
+
+	/// <summary>
+	/// Sends Data and a head with the connected socket
+	/// </summary>
+	/// <param name="input">The Input Data</param>
+	/// <param name="head">The Data identifier (head)</param>
+	/// <returns>Whether the function succeeds (Bool)</returns>
+	bool send(std::string input, std::string head);
 
 private:
 
@@ -113,6 +133,19 @@ private:
 	std::string ip_address;
 	int connection_port = 0;
 
+	/// <summary>
+	/// Attempts to startup the WinSockApi and Initializes the socket
+	/// </summary>
+	/// <param name="sock_data">The WSA struct that will be started</param>
+	/// <param name="sock">The socket that will be initialized</param>
+	/// <returns></returns>
 	bool socket_startup(WSADATA&, SOCKET&);
+
+	/// <summary>
+	/// Attempts to connect to the address and port specified in the sockaddr struct
+	/// </summary>
+	/// <param name="sock">The socket that will connect</param>
+	/// <param name="sock_hint">The struct containing the destination details</param>
+	/// <returns></returns>
 	bool socket_connect(SOCKET&, sockaddr_in&);
 };

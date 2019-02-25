@@ -208,13 +208,11 @@ void tcp_server::async_handler()
 
 tcp_client::tcp_client(std::string connection_ip, int connection_port)
 {
+	set_port(connection_port);
+	set_ip(connection_ip);
 }
 
-tcp_client::tcp_client()
-{
-}
-
-int tcp_client::get_port() const
+int tcp_client::get_port()
 {
 	return connection_port;
 }
@@ -224,14 +222,29 @@ void tcp_client::set_port(int new_port)
 	connection_port = new_port;
 }
 
-std::string tcp_client::ip() const
+std::string tcp_client::get_ip()
 {
 	return ip_address;
 }
 
-void tcp_client::ip(std::string new_ip)
+void tcp_client::set_ip(std::string new_ip)
 {
 	ip_address = new_ip;
+}
+
+bool tcp_client::startup()
+{
+	return false;
+}
+
+bool tcp_client::connect()
+{
+	return false;
+}
+
+bool tcp_client::send(std::string input, std::string head)
+{
+	return false;
 }
 
 bool tcp_client::socket_startup(WSADATA & sock_data, SOCKET & sock)
