@@ -81,7 +81,7 @@ bool tcp_server::bind()
 
 WSA_ERROR tcp_server::format_error(int error_code)
 {
-	if (error_code == -1) {
+	if (error_code == SOCKET_ERROR) {
 
 		auto const error{ WSAGetLastError() };
 		char msg_buf[256]{ '\0' };
@@ -103,12 +103,8 @@ WSA_ERROR tcp_server::format_error(int error_code)
 		return WSA_ERROR(error, std::string(msg_buf));
 
 	}
-	else {
 
-		return WSA_ERROR(0);
-
-	}
-
+	return WSA_ERROR(0);
 
 }
 
@@ -116,7 +112,7 @@ bool tcp_server::handle_error(WSA_ERROR error)
 {
 	switch (error.code) {
 	case 0: // No Error
-		return true;
+		break;
 	case 10054:
 		closesocket(active_socket);
 		FD_CLR(active_socket, &client_set);
@@ -196,8 +192,11 @@ void tcp_server::async_handler()
 			{
 				// Message
 				char buf[4096]{};
-				::recv(current_socket, buf, 4096, 0);
-				std::cout << "Msg{"<< buf << "}"<< std::endl;
+				if(handle_error(format_error(::recv(current_socket, buf, 4096, 0))))
+				{
+					std::cout << "Msg{"<< buf << "}"<< std::endl;
+				}
+				
 			}
 
 		}
