@@ -36,7 +36,7 @@ int main()
 							std::string socket;
 							std::cout << "<>";
 							std::cin >> socket;
-
+							
 							std::cout << main.recv(std::stoi(socket)) << std::endl << std::endl;
 						}
 					}

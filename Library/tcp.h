@@ -41,7 +41,6 @@ private:
 	WSADATA socket_data{};
 	fd_set client_set{};
 	SOCKET main_socket{};
-	SOCKET active_socket{};
 	std::thread manager_thread;
 
 	/// <summary>
@@ -55,8 +54,9 @@ private:
 	/// Handles the specify WSA_ERROR that is inputted
 	/// </summary>
 	/// <param name="error">A constructed WSA_ERROR struct</param>
+	/// <param name="socket">The socket that might get dc'ed</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
-	bool handle_error(WSA_ERROR);
+	bool handle_error(WSA_ERROR, unsigned int);
 
 	/// <summary>
 	/// Places the input socket in a state which allows it to listen for incoming connections
@@ -97,6 +97,14 @@ private:
 	/// The handler that accepts new users by utilizing authentication
 	/// </summary>
 	void async_handler();
+
+	/// <summary>
+	/// Checks the socket if there is data to be read
+	/// </summary>
+	/// <param name="sock">The socket to be tested</param>
+	/// <returns>If the socket is readable</returns>
+	bool readable(SOCKET sock);
+
 };
 
 class tcp_client {
@@ -168,4 +176,12 @@ private:
 	/// <param name="error">A constructed WSA_ERROR struct</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool handle_error(WSA_ERROR);
+
+	/// <summary>
+	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
+	/// </summary>
+	/// <param name="victim">The string that will get padded</param>
+	/// <returns></returns>
+	std::string pad_text(const std::string& victim);
+
 };

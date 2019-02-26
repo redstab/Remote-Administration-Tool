@@ -91,25 +91,46 @@ bool tcp_server::bind()
 
 std::string tcp_server::recv(int current_socket)
 {
-	active_socket = current_socket;
-	fd_set test_set;
-	FD_ZERO(&test_set);
-	FD_SET(active_socket, &test_set);
-	timeval tv{0,500};
-	int readable = select(0, &test_set, nullptr, nullptr, &tv);
-	if(readable)
+	const auto head_len = 32;
+	char hdsize[head_len+1]{};
+	auto head_size = 0;
+	auto data_size = 0;
+
+	if(readable(current_socket))
 	{
-		char buf[4096]{};
-		if(handle_error(format_error(::recv(current_socket, buf, 2, 0))))
+		int bytes_recv = ::recv(current_socket, hdsize, head_len,0);
+		if(handle_error(format_error(bytes_recv), current_socket))
 		{
-			return std::string(buf);
+			std::string head_data(hdsize);
+
+			head_size = std::stoi(head_data.substr(0,16));
+
+			data_size = std::stoi(head_data.substr(16,16));
+
+			std::cout << "Head Size [" << head_size << "]\n";
+			std::cout << "Data Size [" << data_size << "]\n";
 		}
-	}else
-	{
-		std::cout << "No data in socket " << readable << std::endl;
 	}
 
-	return std::string();
+	std::string ss;
+	std::vector<int> log;
+	while(readable(current_socket)){
+			char buf[65536+1]{};
+			int bytes_recved = ::recv(current_socket, buf, 65536, 0);
+			if(handle_error(format_error(bytes_recved), current_socket))
+			{
+				log.push_back(bytes_recved);
+				ss += buf;
+			}
+	}
+	std::cout << "Received <" << ss.size() << ">" << std::endl;
+	std::cout << "Log {";
+	for(auto i : log)
+	{
+		std::cout << i << " ";
+	}
+	std::cout << "}\n";
+	return ss;
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)
@@ -136,19 +157,18 @@ WSA_ERROR tcp_server::format_error(int error_code)
 		return WSA_ERROR(error, std::string(msg_buf));
 
 	}
-	std::cout << std::endl << "<"<< error_code << ">"<< std::endl;
 	return WSA_ERROR(0);
 
 }
 
-bool tcp_server::handle_error(WSA_ERROR error)
+bool tcp_server::handle_error(WSA_ERROR error, unsigned int socket)
 {
 	switch (error.code) {
 	case 0: // No Error
 		break;
 	case 10054:
-		closesocket(active_socket);
-		FD_CLR(active_socket, &client_set);
+		closesocket(socket);
+		FD_CLR(socket, &client_set);
 		break;
 	default:
 		break;
@@ -203,7 +223,7 @@ void tcp_server::async_handler()
 		for(auto i = 0; i < socket_count; i++)
 		{
 			
-			auto current_socket = local_set.fd_array[i];
+			auto const current_socket = local_set.fd_array[i];
 
 			if(current_socket == main_socket)
 			{
@@ -223,6 +243,16 @@ void tcp_server::async_handler()
 			}
 		}
 	}
+}
+
+bool tcp_server::readable(SOCKET sock)
+{
+	fd_set socket_descriptor;
+	FD_ZERO(&socket_descriptor);
+	FD_SET(sock, &socket_descriptor);
+	timeval timeout{0,500};
+
+	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
 }
 
 
@@ -266,7 +296,10 @@ bool tcp_client::connect()
 
 bool tcp_client::send(std::string input, std::string head)
 {
-	return handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
+
+	std::string sizes = pad_text(head)+pad_text(input);
+	std::cout << sizes.substr(0,16) << "|" << sizes.substr(16,16) << std::endl;
+	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0))) &&  handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
 }
 
 bool tcp_client::socket_startup(WSADATA & sock_data, SOCKET & sock)
@@ -327,6 +360,11 @@ bool tcp_client::handle_error(WSA_ERROR error)
 	std::cout << error;
 
 	return error.code == 0;
+}
+
+std::string tcp_client::pad_text(const std::string& victim)
+{
+	return std::string(std::string(16 - (victim.size() > 0 ? (static_cast<int>(log10(static_cast<double>(victim.size()))) + 1) : 1), '0') + std::to_string(victim.size()));
 }
 
 
