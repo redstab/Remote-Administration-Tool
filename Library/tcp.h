@@ -103,7 +103,52 @@ private:
 	/// </summary>
 	/// <param name="sock">The socket to be tested</param>
 	/// <returns>If the socket is readable</returns>
-	bool readable(SOCKET sock);
+	bool readable(SOCKET);
+
+	/// <summary>
+	/// Formats a string of 2 numbers (16bytes*2) to a pair of ints
+	/// </summary>
+	/// <param name="victim">The string that will be parsed</param>
+	/// <returns>A tuple consisting of two ints</returns>
+	std::tuple<int, int> format_input(std::string);
+
+	/// <summary>
+	/// Checks if string is consisting of only digits and not of letters
+	/// </summary>
+	/// <param name="victim">The string that will get tested</param>
+	/// <returns>If the string is only numbers or not (Bool)</returns>
+	bool is_digits(std::string) const;
+
+	/// <summary>
+	/// Calls recv (iter) number of times with input buffers of (size)
+	/// </summary>
+	/// <param name="iter">Number of times recv is to be called</param>
+	/// <param name="size">The size the recv call</param>
+	/// <returns>the string consisting of all the data accumulated</returns>
+	std::string recv_iteration(int, int, SOCKET);
+
+	/// <summary>
+	/// Calls recv to gather the excess data
+	/// </summary>
+	/// <param name="size">The excess size</param>
+	/// <param name="sock">The socket to get data from</param>
+	/// <returns>The excess data</returns>
+	std::string recv_excess(int, SOCKET);
+
+	/// <summary>
+	/// Splits string in to 2 strings by splitting in half
+	/// </summary>
+	/// <param name="victim">the string that will get halved</param>
+	/// <returns>A tuple consisting of the slitted string</returns>
+	std::tuple<std::string, std::string> half_string(const std::string&);
+
+	/// <summary>
+	/// Calculates the amount of recvs one needs to todo based on the recv size
+	/// </summary>
+	/// <param name="total_size">Total size of message</param>
+	/// <param name="recv_size">Amount of bytes received each recv</param>
+	/// <returns>Amount of splits needed + extra bytes in one tuple</returns>
+	std::tuple<int,int> calc_iter(int, int);
 
 };
 

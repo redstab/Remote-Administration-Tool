@@ -57,7 +57,7 @@ void tcp_server::set_port(int new_port)
 void tcp_server::list()
 {
 	std::cout << "{";
-	for(auto i = 0; i < client_set.fd_count; i++)
+	for (auto i = 0; i < client_set.fd_count; i++)
 	{
 		std::cout << i << ":" << client_set.fd_array[i] << " ";
 	}
@@ -91,46 +91,83 @@ bool tcp_server::bind()
 
 std::string tcp_server::recv(int current_socket)
 {
-	const auto head_len = 32;
-	char hdsize[head_len+1]{};
-	auto head_size = 0;
-	auto data_size = 0;
 
-	if(readable(current_socket))
-	{
-		int bytes_recv = ::recv(current_socket, hdsize, head_len,0);
-		if(handle_error(format_error(bytes_recv), current_socket))
+
+	// Receive Packet Header Size 32 bytes (char)
+
+	if (readable(current_socket)) // Checks if socket is readable aka if there is something to read and not just block execution.
+	{	
+		const auto head_len = 32;
+		const auto recv_size = 65536;
+		char hdsize[head_len + 1]{};
+
+		int bytes_recv = ::recv(current_socket, hdsize, head_len, 0);
+
+		if (handle_error(format_error(bytes_recv), current_socket)) // Check if Socket received without error
 		{
-			std::string head_data(hdsize);
+			const std::string head_data(hdsize);
 
-			head_size = std::stoi(head_data.substr(0,16));
+			if(is_digits(hdsize)) // Check if string is only consisting of bcs of stoi in format_input()
+			{
 
-			data_size = std::stoi(head_data.substr(16,16));
+				auto [head_size, data_size] = format_input(head_data);
 
-			std::cout << "Head Size [" << head_size << "]\n";
-			std::cout << "Data Size [" << data_size << "]\n";
+				auto [head_iter, head_excess] = calc_iter(head_size, recv_size);
+
+				auto [data_iter, data_excess] = calc_iter(data_size, recv_size);
+
+				auto h_iter = recv_iteration(head_iter, recv_size, current_socket);
+
+				auto h_excs = recv_excess(head_excess, current_socket);
+
+				auto d_iter = recv_iteration(data_iter, recv_size, current_socket);
+
+				auto d_excs = recv_excess(data_excess, current_socket);
+				
+				
+				std::cout << "\nHead[" << head_size << "]\n";
+				std::cout << "Head Iterations [" << head_iter << "]\n";
+				std::cout << "Head Excess Bytes [" << head_excess << "]\n";
+				std::cout << "Head Iteration Data Size [" << h_iter.size() << "]" << std::endl;
+				std::cout << "Head Excess Data Size [" << h_excs.size() << "]" << std::endl;
+				std::cout << "Head Iter+Excs [" << h_iter.size() + h_excs.size() << "]" << std::endl;
+				std::cout << "Head Sample ["<< std::string(h_iter + h_excs).substr(0, 10)<<"...]" << std::endl;
+				std::cout << "\nData[" << data_size << "]\n";
+				std::cout << "Data Iterations [" << data_iter << "]\n";
+				std::cout << "Data Excess Bytes [" << data_excess << "]\n";
+				std::cout << "Data Iteration Data Size [" << d_iter.size() << "]" << std::endl;
+				std::cout << "Data Excess Data Size [" << d_excs.size() << "]" << std::endl;
+				std::cout << "Data Iter+Excs [" << d_iter.size() + d_excs.size() << "]" << std::endl;
+				std::cout << "Data Sample ["<< std::string(d_iter + d_excs).substr(0, 10)<<"...]" << std::endl;
+
+			}
+
 		}
 	}
 
+/*
 	std::string ss;
 	std::vector<int> log;
-	while(readable(current_socket)){
-			char buf[65536+1]{};
-			int bytes_recved = ::recv(current_socket, buf, 65536, 0);
-			if(handle_error(format_error(bytes_recved), current_socket))
-			{
-				log.push_back(bytes_recved);
-				ss += buf;
-			}
+	int read_bytes = data_size + head_size;
+	while (readable(current_socket)) {
+		char buf[65536 + 1]{};
+		int bytes_recved = ::recv(current_socket, buf, 65536, 0);
+		if (handle_error(format_error(bytes_recved), current_socket))
+		{
+			read_bytes -= bytes_recved;
+			log.push_back(bytes_recved);
+			ss += buf;
+			std::cout << read_bytes << std::endl;
+		}
 	}
 	std::cout << "Received <" << ss.size() << ">" << std::endl;
 	std::cout << "Log {";
-	for(auto i : log)
+	for (auto i : log)
 	{
 		std::cout << i << " ";
 	}
-	std::cout << "}\n";
-	return ss;
+	std::cout << "}\n";*/
+	return std::string();
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)
@@ -208,26 +245,26 @@ bool tcp_server::initialize_socket(SOCKET & sock)
 bool tcp_server::start_manager()
 {
 	FD_ZERO(&client_set);
-	FD_SET(main_socket,&client_set);
+	FD_SET(main_socket, &client_set);
 	manager_thread = std::thread(&tcp_server::async_handler, this);
 	return manager_thread.joinable();
 }
 
 void tcp_server::async_handler()
 {
-	while(true)
+	while (true)
 	{
 		auto local_set = client_set;
-		auto socket_count = select(0, &local_set,nullptr, nullptr,nullptr);
+		auto socket_count = select(0, &local_set, nullptr, nullptr, nullptr);
 
-		for(auto i = 0; i < socket_count; i++)
+		for (auto i = 0; i < socket_count; i++)
 		{
-			
+
 			auto const current_socket = local_set.fd_array[i];
 
-			if(current_socket == main_socket)
+			if (current_socket == main_socket)
 			{
-				
+
 				// New Client
 
 				sockaddr_in socket_address{};
@@ -239,7 +276,7 @@ void tcp_server::async_handler()
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
-				std::cout << "New Client {" << client << ", " << host <<"}" << std::endl;
+				std::cout << "New Client {" << client << ", " << host << "}" << std::endl;
 			}
 		}
 	}
@@ -250,9 +287,68 @@ bool tcp_server::readable(SOCKET sock)
 	fd_set socket_descriptor;
 	FD_ZERO(&socket_descriptor);
 	FD_SET(sock, &socket_descriptor);
-	timeval timeout{0,500};
+	timeval timeout{ 0,500 };
 
 	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
+}
+
+std::tuple<int, int> tcp_server::format_input(std::string victim)
+{
+	auto [first, second] = half_string(victim);
+
+	return std::make_tuple(std::stoi(first), std::stoi(second));
+}
+
+bool tcp_server::is_digits(std::string victim) const
+{
+	return std::all_of(victim.begin(), victim.end(), ::isdigit);
+}
+
+std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
+{
+	std::string accumulated_data;
+	for(auto i = 0; i < iter; i++)
+	{
+		char *data = new char[size+1]{};
+		if(readable(sock))
+		{
+			int bytes_recv = ::recv(sock, data, size, 0);
+			if(handle_error(format_error(bytes_recv),sock) && bytes_recv == size){
+				accumulated_data += data;
+			} // TODO else data loss 
+		} 		
+		delete[] data;
+	}
+	return accumulated_data;
+}
+
+std::string tcp_server::recv_excess(int size, SOCKET sock)
+{
+	char *data = new char[size+1]{};
+
+	std::string excess_data;
+
+	if(readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	{
+		excess_data = data;
+	}
+
+	delete[] data;
+
+	return excess_data;
+}
+
+std::tuple<std::string, std::string> tcp_server::half_string(const std::string &victim)
+{
+	const auto half = victim.length() / 2;
+	std::string first(victim.substr(0,half));
+	std::string second(victim.substr(half,half));
+	return std::make_tuple(first, second);
+}
+
+std::tuple<int, int> tcp_server::calc_iter(int total_size, int recv_size)
+{
+	return std::make_tuple(total_size / recv_size, total_size - (recv_size * (total_size / recv_size)));
 }
 
 
@@ -297,18 +393,18 @@ bool tcp_client::connect()
 bool tcp_client::send(std::string input, std::string head)
 {
 
-	std::string sizes = pad_text(head)+pad_text(input);
-	std::cout << sizes.substr(0,16) << "|" << sizes.substr(16,16) << std::endl;
-	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0))) &&  handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
+	std::string sizes = pad_text(head) + pad_text(input);
+	std::cout << sizes.substr(0, 16) << "|" << sizes.substr(16, 16) << std::endl;
+	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0))) && handle_error(format_error(::send(connection_socket, head.c_str(), int(head.size()), 0))) && handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
 }
 
 bool tcp_client::socket_startup(WSADATA & sock_data, SOCKET & sock)
 {
-	if(WSAStartup(MAKEWORD(2,2), &sock_data) == 0)
+	if (WSAStartup(MAKEWORD(2, 2), &sock_data) == 0)
 	{
 		sock = socket(AF_INET, SOCK_STREAM, 0);
 
-		if(sock != INVALID_SOCKET)
+		if (sock != INVALID_SOCKET)
 		{
 			socket_hint.sin_family = AF_INET;
 			socket_hint.sin_port = htons(connection_port);
@@ -356,13 +452,13 @@ WSA_ERROR tcp_client::format_error(int error_code)
 }
 bool tcp_client::handle_error(WSA_ERROR error)
 {
-	
+
 	std::cout << error;
 
 	return error.code == 0;
 }
 
-std::string tcp_client::pad_text(const std::string& victim)
+std::string tcp_client::pad_text(const std::string & victim)
 {
 	return std::string(std::string(16 - (victim.size() > 0 ? (static_cast<int>(log10(static_cast<double>(victim.size()))) + 1) : 1), '0') + std::to_string(victim.size()));
 }

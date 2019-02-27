@@ -26,8 +26,8 @@ int main()
 			while(true)
 			{
 				std::cin.get();
-				main.send(std::string(50000, 'a'), "head");
-				main.send(std::string(50000, 'a'), "head");
+				main.send(std::string(500000, 'a'), "headsdfgdfgsfgds");
+				main.send(std::string(500000, 'a'), "hgdfsdfgsdfgsdfgsgdfsgfddfgsfdgfgdead");
 			}
 
 		}
