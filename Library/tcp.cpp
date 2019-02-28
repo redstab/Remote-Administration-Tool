@@ -57,7 +57,7 @@ void tcp_server::set_port(int new_port)
 void tcp_server::list()
 {
 	std::cout << "{";
-	for (auto i = 0; i < client_set.fd_count; i++)
+	for (unsigned int i = 0; i < client_set.fd_count; i++)
 	{
 		std::cout << i << ":" << client_set.fd_array[i] << " ";
 	}
@@ -89,85 +89,40 @@ bool tcp_server::bind()
 	return socket_bind(main_socket, accepting_port);
 }
 
-std::string tcp_server::recv(int current_socket)
+packet tcp_server::recv(int sock)
 {
-
-
 	// Receive Packet Header Size 32 bytes (char)
 
-	if (readable(current_socket)) // Checks if socket is readable aka if there is something to read and not just block execution.
-	{	
-		const auto head_len = 32;
+	if (readable(sock)) // Checks if socket is readable aka if there is something to read and not just block execution.
+	{
+
+		const auto header_length = 32;
 		const auto recv_size = 65536;
-		char hdsize[head_len + 1]{};
+		char header_buffer[header_length + 1]{};
 
-		int bytes_recv = ::recv(current_socket, hdsize, head_len, 0);
+		const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
 
-		if (handle_error(format_error(bytes_recv), current_socket)) // Check if Socket received without error
+		if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
 		{
-			const std::string head_data(hdsize);
+			const std::string header_string(header_buffer);
 
-			if(is_digits(hdsize)) // Check if string is only consisting of bcs of stoi in format_input()
+			if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 			{
 
-				auto [head_size, data_size] = format_input(head_data);
+				auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
 
-				auto [head_iter, head_excess] = calc_iter(head_size, recv_size);
+				auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-				auto [data_iter, data_excess] = calc_iter(data_size, recv_size);
+				auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto h_iter = recv_iteration(head_iter, recv_size, current_socket);
+				auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto h_excs = recv_excess(head_excess, current_socket);
-
-				auto d_iter = recv_iteration(data_iter, recv_size, current_socket);
-
-				auto d_excs = recv_excess(data_excess, current_socket);
-				
-				
-				std::cout << "\nHead[" << head_size << "]\n";
-				std::cout << "Head Iterations [" << head_iter << "]\n";
-				std::cout << "Head Excess Bytes [" << head_excess << "]\n";
-				std::cout << "Head Iteration Data Size [" << h_iter.size() << "]" << std::endl;
-				std::cout << "Head Excess Data Size [" << h_excs.size() << "]" << std::endl;
-				std::cout << "Head Iter+Excs [" << h_iter.size() + h_excs.size() << "]" << std::endl;
-				std::cout << "Head Sample ["<< std::string(h_iter + h_excs).substr(0, 10)<<"...]" << std::endl;
-				std::cout << "\nData[" << data_size << "]\n";
-				std::cout << "Data Iterations [" << data_iter << "]\n";
-				std::cout << "Data Excess Bytes [" << data_excess << "]\n";
-				std::cout << "Data Iteration Data Size [" << d_iter.size() << "]" << std::endl;
-				std::cout << "Data Excess Data Size [" << d_excs.size() << "]" << std::endl;
-				std::cout << "Data Iter+Excs [" << d_iter.size() + d_excs.size() << "]" << std::endl;
-				std::cout << "Data Sample ["<< std::string(d_iter + d_excs).substr(0, 10)<<"...]" << std::endl;
-
+				return packet{merge(head_iteration_buffer, head_excess_buffer), merge(data_iteration_buffer, data_excess_buffer),identifier_size, data_size, 0};
 			}
-
 		}
 	}
 
-/*
-	std::string ss;
-	std::vector<int> log;
-	int read_bytes = data_size + head_size;
-	while (readable(current_socket)) {
-		char buf[65536 + 1]{};
-		int bytes_recved = ::recv(current_socket, buf, 65536, 0);
-		if (handle_error(format_error(bytes_recved), current_socket))
-		{
-			read_bytes -= bytes_recved;
-			log.push_back(bytes_recved);
-			ss += buf;
-			std::cout << read_bytes << std::endl;
-		}
-	}
-	std::cout << "Received <" << ss.size() << ">" << std::endl;
-	std::cout << "Log {";
-	for (auto i : log)
-	{
-		std::cout << i << " ";
-	}
-	std::cout << "}\n";*/
-	return std::string();
+	return packet{"","",0,0,-1};
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)
@@ -198,7 +153,7 @@ WSA_ERROR tcp_server::format_error(int error_code)
 
 }
 
-bool tcp_server::handle_error(WSA_ERROR error, unsigned int socket)
+bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 {
 	switch (error.code) {
 	case 0: // No Error
@@ -304,31 +259,42 @@ bool tcp_server::is_digits(std::string victim) const
 	return std::all_of(victim.begin(), victim.end(), ::isdigit);
 }
 
+template <typename ... Arguments>
+std::string tcp_server::merge(Arguments ... args)
+{
+	return std::string((args + ...));
+}
+
 std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
 {
 	std::string accumulated_data;
-	for(auto i = 0; i < iter; i++)
+	for (auto i = 0; i < iter; i++)
 	{
-		char *data = new char[size+1]{};
-		if(readable(sock))
+		char* data = new char[size + 1]{};
+		if (readable(sock))
 		{
 			int bytes_recv = ::recv(sock, data, size, 0);
-			if(handle_error(format_error(bytes_recv),sock) && bytes_recv == size){
+			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
 				accumulated_data += data;
 			} // TODO else data loss 
-		} 		
+		}
 		delete[] data;
 	}
 	return accumulated_data;
 }
 
+std::tuple<std::string, std::string> tcp_server::recv_(SOCKET sock, int iter, int excess, int recv_size)
+{
+	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
+}
+
 std::string tcp_server::recv_excess(int size, SOCKET sock)
 {
-	char *data = new char[size+1]{};
+	char* data = new char[size + 1]{};
 
 	std::string excess_data;
 
-	if(readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
 	{
 		excess_data = data;
 	}
@@ -338,17 +304,17 @@ std::string tcp_server::recv_excess(int size, SOCKET sock)
 	return excess_data;
 }
 
-std::tuple<std::string, std::string> tcp_server::half_string(const std::string &victim)
+std::tuple<std::string, std::string> tcp_server::half_string(const std::string & victim)
 {
 	const auto half = victim.length() / 2;
-	std::string first(victim.substr(0,half));
-	std::string second(victim.substr(half,half));
+	std::string first(victim.substr(0, half));
+	std::string second(victim.substr(half, half));
 	return std::make_tuple(first, second);
 }
 
-std::tuple<int, int> tcp_server::calc_iter(int total_size, int recv_size)
+std::tuple<int, int, int, int> tcp_server::calc_iter(int first_size, int second_size, int recv_size)
 {
-	return std::make_tuple(total_size / recv_size, total_size - (recv_size * (total_size / recv_size)));
+	return std::make_tuple((first_size / recv_size), (first_size - (recv_size * (first_size / recv_size))), (second_size / recv_size),(second_size - (recv_size * (second_size / recv_size))));
 }
 
 
@@ -460,7 +426,9 @@ bool tcp_client::handle_error(WSA_ERROR error)
 
 std::string tcp_client::pad_text(const std::string & victim)
 {
-	return std::string(std::string(16 - (victim.size() > 0 ? (static_cast<int>(log10(static_cast<double>(victim.size()))) + 1) : 1), '0') + std::to_string(victim.size()));
+	const auto head_length = 16;
+	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;
+	return std::string(std::string(static_cast<const unsigned _int64>(head_length) - pad_length, '0') + std::to_string(victim.size()));
 }
 
 
