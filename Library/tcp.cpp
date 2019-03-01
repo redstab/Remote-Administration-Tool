@@ -93,36 +93,46 @@ packet tcp_server::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
 
-	if (readable(sock)) // Checks if socket is readable aka if there is something to read and not just block execution.
+	const auto header_length = 32;
+	const auto recv_size = 65536;
+	char header_buffer[header_length + 1]{};
+
+	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
+
+	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
 	{
+		const std::string header_string(header_buffer);
 
-		const auto header_length = 32;
-		const auto recv_size = 65536;
-		char header_buffer[header_length + 1]{};
-
-		const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
-
-		if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
+		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
-			const std::string header_string(header_buffer);
 
-			if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
-			{
+			auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
 
-				auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
+			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-				auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
-
-				return packet{merge(head_iteration_buffer, head_excess_buffer), merge(data_iteration_buffer, data_excess_buffer),identifier_size, data_size, 0};
-			}
+			return packet{
+				merge(head_iteration_buffer, head_excess_buffer), 
+				merge(data_iteration_buffer, data_excess_buffer),
+				identifier_size, 
+				static_cast<long long>(data_size), 
+				0
+			};
+		
 		}
 	}
 
-	return packet{"","",0,0,-1};
+	return packet{
+		"",
+		"",
+		0,
+		0,
+		-1
+	};
+
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)

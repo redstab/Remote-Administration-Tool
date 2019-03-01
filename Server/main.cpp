@@ -30,17 +30,16 @@ int main()
 
 						while (true)
 						{
-							std::cout << std::string().max_size() << std::endl;
 							main.list();
 							std::string socket;
-							std::cout << "<>";
+							std::cout << ": ";
 							std::cin >> socket;
 
-							packet _packet(main.recv(std::stoi(socket)));
+							auto msg(main.recv(std::stoi(socket)));
 
-							std::cout << "Head: "<< _packet.identifier_buffer << " - " << _packet.id_size << "\n"
-										<< "Data: "<< _packet.data_buffer.substr(0,10) << " - " << _packet.data_size << "\n"
-										<< "ErrorCode: " << _packet.error_code << "\n";
+							std::cout << "Head: "<< msg.identifier_buffer << " - " << msg.id_size << "\n"
+										<< "Data: "<< msg.data_buffer.substr(0,10) << " - " << msg.data_size << "\n"
+										<< "ErrorCode: " << msg.error_code << "\n";
 						}
 					}
 
