@@ -18,6 +18,7 @@ struct packet
 	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
 
 	int error_code;
+
 };
 
 
@@ -31,9 +32,7 @@ inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 class tcp_server
 {
 public:
-	tcp_server()
-	{
-	};
+	tcp_server(){};
 	tcp_server(int);
 	~tcp_server();
 
@@ -189,9 +188,7 @@ class tcp_client
 {
 public:
 
-	tcp_client()
-	{
-	};
+	tcp_client(){};
 	tcp_client(std::string, int);
 
 	int get_port();
@@ -221,9 +218,9 @@ public:
 
 private:
 
-	WSADATA socket_data;
-	SOCKET connection_socket;
-	sockaddr_in socket_hint;
+	WSADATA socket_data{};
+	SOCKET connection_socket{};
+	sockaddr_in socket_hint{};
 	std::string ip_address;
 	int connection_port = 0;
 
