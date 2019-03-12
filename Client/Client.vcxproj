@@ -161,9 +161,11 @@
     <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="pipe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Library\tcp.h" />
+    <ClInclude Include="pipe.h" />
     <ClInclude Include="precompile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

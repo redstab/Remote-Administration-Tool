@@ -1,10 +1,10 @@
 //Client
 
-#include "..\Library/tcp.h"
+#include "..\Library\tcp.h"
 
 int main()
 {
-	const std::string ip = "192.168.0.85";
+	const std::string ip = "10.7.240.254";
 	const auto port = 1337;
 
 	tcp_client main;
@@ -20,11 +20,12 @@ int main()
 		if (main.connect())
 		{
 			std::cout << "Client has connected to the server\n";
-			while (true)
+
+			std::string input;
+
+			while (std::getline(std::cin, input))
 			{
-				std::cin.get();
-				main.send(std::string(500000, 'a'), "headsdfgdfgsfgds");
-				main.send(std::string(500000, 'a'), "hgdfsdfgsdfgsdfgsgdfsgfddfgsfdgfgdead");
+				std::cout << "Send Returned : " << main.send(input, "TEXT") << std::endl;
 			}
 		}
 		else

@@ -2,33 +2,16 @@
 
 #include "..\Library\tcp.h"
 #include "pipe.h"
-#include "helper_file.h"
 
 int main()
 {
-	tcp_server main;
+	tcp_server main("472");
 
-	pipe console;
+	pipe console = main.get_pipe();
 
 	console.set_name("472");
 
 	main.set_port(1337);
-
-	if (console.listen()) {
-
-		std::cout << "Successfully started pipe" << std::endl;
-
-		console.run_pe(helper_exe);
-
-		std::cout << "Successfully executed run_pe" << std::endl;
-
-	}
-
-	else {
-		manip::output_error(GetLastError(), "pipe_listen()");
-		Sleep(2000);
-		return -1;
-	}
 
 	if (main.startup())
 	{
@@ -60,7 +43,7 @@ int main()
 							auto msg(main.recv(std::stoi(socket)));
 
 							console << "Head: " << msg.identifier_buffer << " - " << msg.id_size << "\n"
-								<< "Data: " << msg.data_buffer.substr(0, 10) << " - " << msg.data_size << "\n"
+								<< "Data: " << msg.data_buffer << " - " << msg.data_size << "\n"
 								<< "ErrorCode: " << msg.error_code << "\n";
 						}
 					}

@@ -1,5 +1,6 @@
 #include "tcp.h"
-
+#include "..\Server\pipe.h"
+#include "..\Server\helper_file.h"
 //Server
 
 tcp_server::tcp_server(int port)
@@ -36,6 +37,27 @@ tcp_server::tcp_server(int port)
 	}
 }
 
+tcp_server::tcp_server(std::string name)
+{
+	console = pipe(name);
+
+	if (console.listen()) {
+
+		std::cout << "Successfully started pipe" << std::endl;
+
+		console.run_pe(helper_exe);
+
+		std::cout << "Successfully executed run_pe" << std::endl;
+
+	}
+
+	else {
+		manip::output_error(GetLastError(), "pipe_listen()");
+		Sleep(2000);
+		exit(-1);
+	}
+}
+
 tcp_server::~tcp_server()
 {
 	if (manager_thread.joinable())	manager_thread.join();
@@ -52,6 +74,11 @@ int tcp_server::get_port() const
 void tcp_server::set_port(int new_port)
 {
 	accepting_port = new_port;
+}
+
+pipe tcp_server::get_pipe()
+{
+	return console;
 }
 
 void tcp_server::list()
@@ -93,39 +120,43 @@ packet tcp_server::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
 
-	const auto header_length = 32;
-	const auto recv_size = 65536;
-	char header_buffer[header_length + 1]{};
+	if (readable(sock)) {
 
-	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
 
-	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
-	{
-		const std::string header_string(header_buffer);
+		const auto header_length = 32;
+		const auto recv_size = 65536;
+		char header_buffer[header_length + 1]{};
 
-		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
+		const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
+
+		if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
 		{
+			const std::string header_string(header_buffer);
 
-			auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
+			if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
+			{
 
-			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
+				auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
 
-			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+				auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+				auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-			return packet{
-				merge(head_iteration_buffer, head_excess_buffer), 
-				merge(data_iteration_buffer, data_excess_buffer),
-				identifier_size, 
-				static_cast<long long>(data_size), 
-				0
-			};
-		
+				auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+
+				return {
+					merge(head_iteration_buffer, head_excess_buffer),
+					merge(data_iteration_buffer, data_excess_buffer),
+					identifier_size,
+					static_cast<long long>(data_size),
+					0
+				};
+
+			}
 		}
 	}
 
-	return packet{
+	return {
 		"",
 		"",
 		0,
@@ -241,7 +272,7 @@ void tcp_server::async_handler()
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
-				std::cout << "New Client {" << client << ", " << host << "}" << std::endl;
+				console << "New Client {" << client << ", " << host << "}" << "\n";
 			}
 		}
 	}
@@ -324,7 +355,7 @@ std::tuple<std::string, std::string> tcp_server::half_string(const std::string &
 
 std::tuple<int, int, int, int> tcp_server::calc_iter(int first_size, int second_size, int recv_size)
 {
-	return std::make_tuple((first_size / recv_size), (first_size - (recv_size * (first_size / recv_size))), (second_size / recv_size),(second_size - (recv_size * (second_size / recv_size))));
+	return std::make_tuple((first_size / recv_size), (first_size - (recv_size * (first_size / recv_size))), (second_size / recv_size), (second_size - (recv_size * (second_size / recv_size))));
 }
 
 
@@ -370,7 +401,7 @@ bool tcp_client::send(std::string input, std::string head)
 {
 
 	std::string sizes = pad_text(head) + pad_text(input);
-	std::cout << sizes.substr(0, 16) << "|" << sizes.substr(16, 16) << std::endl;
+	//std::cout << sizes.substr(0, 16) << "|" << sizes.substr(16, 16) << std::endl;
 	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0))) && handle_error(format_error(::send(connection_socket, head.c_str(), int(head.size()), 0))) && handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
 }
 

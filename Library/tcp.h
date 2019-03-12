@@ -1,5 +1,6 @@
 #pragma once
 #include "..\Server/precompile.h"
+#include "..\Server\pipe.h"
 
 struct WSA_ERROR
 {
@@ -14,7 +15,7 @@ struct packet
 
 	std::string identifier_buffer;
 	std::string data_buffer;
-	
+
 	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
 
 	int error_code;
@@ -25,19 +26,22 @@ struct packet
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 {
 	return (error.code == 0 && error.msg.empty())
-		       ? os
-		       : os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
+		? os
+		: os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
 }
 
 class tcp_server
 {
 public:
-	tcp_server(){};
+	tcp_server() {};
 	tcp_server(int);
+	tcp_server(std::string);
 	~tcp_server();
 
 	int get_port() const;
 	void set_port(int);
+
+	pipe get_pipe();
 
 	void list();
 
@@ -59,6 +63,8 @@ private:
 	SOCKET main_socket{};
 	std::thread manager_thread;
 
+	pipe console;
+
 	/// <summary>
 	/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
 	/// </summary>
@@ -70,7 +76,7 @@ private:
 	/// Handles the specify WSA_ERROR that is inputted
 	/// </summary>
 	/// <param name="error">A constructed WSA_ERROR struct</param>
-	/// <param name="socket">The socket that might get dc'ed</param>
+	/// <param name="socket">The socket that might get dc'ed if error is fatal</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool handle_error(WSA_ERROR, unsigned long long);
 
@@ -188,7 +194,7 @@ class tcp_client
 {
 public:
 
-	tcp_client(){};
+	tcp_client() {};
 	tcp_client(std::string, int);
 
 	int get_port();
@@ -241,10 +247,10 @@ private:
 	bool socket_connect(SOCKET&, sockaddr_in&);
 
 	/// <summary>
-/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
-/// </summary>
-/// <param name="error_code">A integer containing potentially a error_code, can also be a SOCKET or return value from a socket manipulating function such as recv(), send()</param>
-/// <returns>The constructed error structure</returns>
+	/// Constructs an WSA_ERROR from a WSAGetLastError() and gets the msg from FormatMessageA()
+	/// </summary>
+	/// <param name="error_code">A integer containing potentially a error_code, can also be a SOCKET or return value from a socket manipulating function such as recv(), send()</param>
+	/// <returns>The constructed error structure</returns>
 	WSA_ERROR format_error(int);
 
 	/// <summary>
