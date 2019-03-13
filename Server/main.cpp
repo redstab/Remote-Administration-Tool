@@ -9,8 +9,6 @@ int main()
 
 	pipe console = main.get_pipe();
 
-	console.set_name("472");
-
 	main.set_port(1337);
 
 	if (main.startup())
