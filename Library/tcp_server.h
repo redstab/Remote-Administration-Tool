@@ -1,5 +1,5 @@
 #pragma once
-#include "..\Server/precompile.h"
+#include "..\Server\precompile.h"
 #include "..\Server\pipe.h"
 
 enum error_codes {
@@ -28,11 +28,17 @@ struct packet
 
 };
 
+
 struct client {
-	std::string ip_address;
-	int socket_id;
-	std::deque<packet> instruction_queue;
-	bool need_update;
+	client(std::string ip, int id) {
+		ip_address = ip;
+		socket_id = id;
+	}
+
+	std::string ip_address = "";
+	int socket_id = 0;
+	std::deque<packet> packet_queue;
+	bool need_update = false;
 
 	void push_packet(packet input);
 };
@@ -72,7 +78,9 @@ public:
 	bool manager();
 	bool bind();
 
-	packet recv(int sock);
+	packet recv(int);
+
+	bool send(client, std::string, std::string);
 
 private:
 
@@ -209,6 +217,21 @@ private:
 	/// Merges (n) amounts of std::strings into one
 	/// </summary>
 	/// <param name="...args">Variadic template of all the strings</param>
-	/// <returns></returns>
+	/// <returns>The combined strings</returns>
 	template<typename... Arguments> std::string merge(Arguments ... args);
+
+	/// <summary>
+	/// Generates a password that will authenticate users by doing a few oprations on the number
+	/// </summary>
+	/// <param name="min">The minimum allowed password</param>
+	/// <param name="max">The maximum allowed password</param>
+	/// <returns>A tuple of the random password and its solution</returns>
+	std::tuple<int, int> generate_password(int, int);
+
+	/// <summary>
+	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
+	/// </summary>
+	/// <param name="victim">The string that will get padded</param>
+	/// <returns>Padded string</returns>
+	std::string pad_text(const std::string& victim);
 };

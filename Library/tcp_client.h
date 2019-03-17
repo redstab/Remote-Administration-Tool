@@ -9,6 +9,17 @@ struct WSA_ERROR
 	std::string msg;
 };
 
+struct packet
+{
+
+	std::string identifier_buffer;
+	std::string data_buffer;
+
+	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
+
+	int error_code;
+
+};
 
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 {
@@ -49,6 +60,8 @@ public:
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool send(std::string input, std::string head);
 
+	packet recv(int);
+
 private:
 
 	WSADATA socket_data{};
@@ -85,7 +98,7 @@ private:
 	/// </summary>
 	/// <param name="error">A constructed WSA_ERROR struct</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
-	bool handle_error(WSA_ERROR);
+	bool handle_error(WSA_ERROR, SOCKET);
 
 	/// <summary>
 	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
@@ -93,4 +106,82 @@ private:
 	/// <param name="victim">The string that will get padded</param>
 	/// <returns></returns>
 	std::string pad_text(const std::string& victim);
+
+	/// <summary>
+	/// Checks the socket if there is data to be read
+	/// </summary>
+	/// <param name="sock">The socket to be tested</param>
+	/// <returns>If the socket is readable</returns>
+	bool readable(SOCKET);
+
+	/// <summary>
+	/// Formats a string of 2 numbers (16bytes*2) to a pair of ints
+	/// </summary>
+	/// <param name="victim">The string that will be parsed</param>
+	/// <returns>A tuple consisting of two ints</returns>
+	std::tuple<int, int> format_input(std::string);
+
+	/// <summary>
+	/// Checks if string is consisting of only digits and not of letters
+	/// </summary>
+	/// <param name="victim">The string that will get tested</param>
+	/// <returns>If the string is only numbers or not (Bool)</returns>
+	bool is_digits(std::string) const;
+
+	/// <summary>
+	/// Calls recv (iter) number of times with input buffers of (size)
+	/// </summary>
+	/// <param name="iter">Number of times recv is to be called</param>
+	/// <param name="size">The size the recv call</param>
+	/// <returns>the string consisting of all the data accumulated</returns>
+	std::string recv_iteration(int, int, SOCKET);
+
+	/// <summary>
+	/// Cover recv_iter and recv_excess in one function
+	/// </summary>
+	/// <param name="sock">The socket to recv from</param>
+	/// <param name="iter">Number of iteration</param>
+	/// <param name="excess">The amount of excess data</param>
+	/// <param name="recv">The amount to be recv every iteration</param>
+	/// <returns></returns>
+	std::tuple<std::string, std::string> recv_(SOCKET, int, int, int);
+
+	/// <summary>
+	/// Calls recv to gather the excess data
+	/// </summary>
+	/// <param name="size">The excess size</param>
+	/// <param name="sock">The socket to get data from</param>
+	/// <returns>The excess data</returns>
+	std::string recv_excess(int, SOCKET);
+
+	/// <summary>
+	/// Splits string in to 2 strings by splitting in half
+	/// </summary>
+	/// <param name="victim">the string that will get halved</param>
+	/// <returns>A tuple consisting of the slitted string</returns>
+	std::tuple<std::string, std::string> half_string(const std::string&);
+
+	/// <summary>
+	/// Calculates the amount of recvs one needs to todo based on the recv size
+	/// </summary>
+	/// <param name="total_size">Total size of message</param>
+	/// <param name="recv_size">Amount of bytes received each recv</param>
+	/// <returns>Amount of splits needed + extra bytes in one tuple</returns>
+	std::tuple<int, int, int, int> calc_iter(int, int, int);
+
+	/// <summary>
+	/// Merges (n) amounts of std::strings into one
+	/// </summary>
+	/// <param name="...args">Variadic template of all the strings</param>
+	/// <returns>The combined strings</returns>
+	template<typename... Arguments> std::string merge(Arguments ... args);
+
+	/// <summary>
+	/// Generates a password that will authenticate users by doing a few oprations on the number
+	/// </summary>
+	/// <param name="min">The minimum allowed password</param>
+	/// <param name="max">The maximum allowed password</param>
+	/// <returns>A tuple of the random password and its solution</returns>
+	int generate_solution(int);
+
 };

@@ -119,7 +119,7 @@ void pipe::run_pe(void* Image)
 					std::cout << "[run_pe] DiscardVirtualMemory - (" << GetLastError() << ")[" << error(GetLastError()) << "]" << std::endl;
 				}
 				else {
-					hexout << "[run_pe] Discarded virtual memory [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
+					hexout << "[run_pe] Discarded virtual memory from [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
 				}
 
 				MEMORY_BASIC_INFORMATION mem{};

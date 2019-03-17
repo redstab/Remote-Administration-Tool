@@ -83,12 +83,11 @@ pipe tcp_server::get_pipe()
 
 void tcp_server::list()
 {
-	std::cout << "{";
 	for (unsigned int i = 0; i < client_set.fd_count; i++)
 	{
 		std::cout << i << ":" << client_set.fd_array[i] << " ";
 	}
-	std::cout << "}\n";
+	std::cout << "\n";
 }
 
 bool tcp_server::startup()
@@ -121,7 +120,6 @@ packet tcp_server::recv(int sock)
 	// Receive Packet Header Size 32 bytes (char)
 
 	if (readable(sock)) {
-
 
 		const auto header_length = 32;
 		const auto recv_size = 65536;
@@ -164,6 +162,12 @@ packet tcp_server::recv(int sock)
 		-1
 	};
 
+}
+
+bool tcp_server::send(client target, std::string input, std::string head)
+{
+	std::string sizes = pad_text(head) + pad_text(input);
+	return handle_error(format_error(::send(target.socket_id, sizes.c_str(), int(sizes.size()), 0)), target.socket_id) && handle_error(format_error(::send(target.socket_id, head.c_str(), int(head.size()), 0)), target.socket_id) && handle_error(format_error(::send(target.socket_id, input.c_str(), int(input.size()), 0)), target.socket_id);
 }
 
 WSA_ERROR tcp_server::format_error(int error_code)
@@ -266,13 +270,26 @@ void tcp_server::handler()
 				sockaddr_in socket_address{};
 				char host[NI_MAXHOST]{};
 				int address_len = sizeof(socket_address);
-				auto client = accept(main_socket, reinterpret_cast<sockaddr*>(&socket_address), &address_len);
+				auto client_socket = accept(main_socket, reinterpret_cast<sockaddr*>(&socket_address), &address_len);
 
-				FD_SET(client, &client_set);
+				FD_SET(client_socket, &client_set);
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
-				console << "New Client {" << client << ", " << host << "}" << "\n";
+				auto current_challanger = client(host, client_socket);
+
+				//TODO create thread for the authentication to not block thread
+
+				auto [input, output] = generate_password(10000, 99999);
+
+				if (tcp_server::send(current_challanger, std::to_string(input), "PASSWORD CHECK")) {
+					console << "Sent Handshake Request - " << input << " to " << client_socket << ", expects : " << output << "\n";
+				}
+				else {
+					console << "Could not send handshake request - " << input << " to " << client_socket << "\n";
+				}
+
+				console << "New Client {" << client_socket << ", " << host << "}" << "\n";
 			}
 			else {
 				auto msg(tcp_server::recv(current_socket));
@@ -369,6 +386,24 @@ std::tuple<int, int, int, int> tcp_server::calc_iter(int first_size, int second_
 	return std::make_tuple((first_size / recv_size), (first_size - (recv_size * (first_size / recv_size))), (second_size / recv_size), (second_size - (recv_size * (second_size / recv_size))));
 }
 
+std::tuple<int, int> tcp_server::generate_password(int min, int max)
+{
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_int_distribution<std::mt19937::result_type> distribution(min, max);
+
+	int input = distribution(mt); // (((a ^ (a*a)) ^ a*a*a*a) / 2) % 10*10*10*10
+	int singularity = ((input % 2 == 0) ? input : input / 2);
+	return std::make_tuple(input, abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity));
+}
+
+std::string tcp_server::pad_text(const std::string& victim)
+{
+	const auto head_length = 16;
+	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;
+	return std::string(std::string(static_cast<const unsigned _int64>(head_length) - pad_length, '0') + std::to_string(victim.size()));
+}
+
 //WSA_ERROR
 
 WSA_ERROR::WSA_ERROR(int error_code, std::string error_msg)
@@ -387,5 +422,5 @@ WSA_ERROR::WSA_ERROR(int error_code)
 
 void client::push_packet(packet input)
 {
-	instruction_queue.push_back(input);
+	packet_queue.push_back(input);
 }

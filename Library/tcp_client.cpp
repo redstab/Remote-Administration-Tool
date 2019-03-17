@@ -34,18 +34,27 @@ bool tcp_client::startup()
 
 bool tcp_client::connect()
 {
-	return socket_connect(connection_socket, socket_hint);
+	if (socket_connect(connection_socket, socket_hint)) {
+
+		auto pass(tcp_client::recv(connection_socket));
+
+		std::cout << "[" << pass.data_buffer << "](" << pass.identifier_buffer << ")\n";
+
+		std::cout << "Attempting to rebuild the password from " << pass.data_buffer << ", result is : " << generate_solution(std::stoi(pass.data_buffer)) << std::endl;
+
+		return true;
+	}
+
+	return false;
 }
 
 bool tcp_client::send(std::string input, std::string head)
 {
-
 	std::string sizes = pad_text(head) + pad_text(input);
-	//std::cout << sizes.substr(0, 16) << "|" << sizes.substr(16, 16) << std::endl;
-	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0))) && handle_error(format_error(::send(connection_socket, head.c_str(), int(head.size()), 0))) && handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)));
+	return handle_error(format_error(::send(connection_socket, sizes.c_str(), int(sizes.size()), 0)), connection_socket) && handle_error(format_error(::send(connection_socket, head.c_str(), int(head.size()), 0)), connection_socket) && handle_error(format_error(::send(connection_socket, input.c_str(), int(input.size()), 0)), connection_socket);
 }
 
-bool tcp_client::socket_startup(WSADATA & sock_data, SOCKET & sock)
+bool tcp_client::socket_startup(WSADATA& sock_data, SOCKET& sock)
 {
 	if (WSAStartup(MAKEWORD(2, 2), &sock_data) == 0)
 	{
@@ -64,9 +73,9 @@ bool tcp_client::socket_startup(WSADATA & sock_data, SOCKET & sock)
 	return false;
 }
 
-bool tcp_client::socket_connect(SOCKET & sock, sockaddr_in & sock_hint)
+bool tcp_client::socket_connect(SOCKET& sock, sockaddr_in& sock_hint)
 {
-	return handle_error(format_error(::connect(sock, reinterpret_cast<sockaddr*>(&sock_hint), sizeof(sock_hint))));
+	return handle_error(format_error(::connect(sock, reinterpret_cast<sockaddr*>(&sock_hint), sizeof(sock_hint))), connection_socket);
 }
 
 WSA_ERROR tcp_client::format_error(int error_code)
@@ -97,20 +106,165 @@ WSA_ERROR tcp_client::format_error(int error_code)
 	return WSA_ERROR(0);
 
 }
-bool tcp_client::handle_error(WSA_ERROR error)
+bool tcp_client::handle_error(WSA_ERROR error, SOCKET socket)
 {
+	switch (error.code) {
+	case 0: // No Error
+		break;
+	case 10054:
+		closesocket(socket);
+		break;
+	default:
+		break;
+	}
 
 	std::cout << error;
 
 	return error.code == 0;
 }
 
-std::string tcp_client::pad_text(const std::string & victim)
+std::string tcp_client::pad_text(const std::string& victim)
 {
 	const auto head_length = 16;
 	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;
 	return std::string(std::string(static_cast<const unsigned _int64>(head_length) - pad_length, '0') + std::to_string(victim.size()));
 }
+
+
+packet tcp_client::recv(int sock)
+{
+	// Receive Packet Header Size 32 bytes (char)
+
+	const auto header_length = 32;
+	const auto recv_size = 65536;
+	char header_buffer[header_length + 1]{};
+
+	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
+
+	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
+	{
+		const std::string header_string(header_buffer);
+
+		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
+		{
+
+			auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
+
+			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
+
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+
+			return {
+				merge(head_iteration_buffer, head_excess_buffer),
+				merge(data_iteration_buffer, data_excess_buffer),
+				identifier_size,
+				static_cast<long long>(data_size),
+				0
+			};
+
+		}
+	}
+
+
+	return {
+		"",
+		"",
+		0,
+		0,
+		-1
+	};
+
+}
+
+
+bool tcp_client::readable(SOCKET sock)
+{
+	fd_set socket_descriptor;
+	FD_ZERO(&socket_descriptor);
+	FD_SET(sock, &socket_descriptor);
+	timeval timeout{ 0,500 };
+
+	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
+}
+
+std::tuple<int, int> tcp_client::format_input(std::string victim)
+{
+	auto [first, second] = half_string(victim);
+
+	return std::make_tuple(std::stoi(first), std::stoi(second));
+}
+
+bool tcp_client::is_digits(std::string victim) const
+{
+	return std::all_of(victim.begin(), victim.end(), ::isdigit);
+}
+
+template <typename ... Arguments>
+std::string tcp_client::merge(Arguments ... args)
+{
+	return std::string((args + ...));
+}
+
+std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock)
+{
+	std::string accumulated_data;
+	for (auto i = 0; i < iter; i++)
+	{
+		char* data = new char[size + 1]{};
+		if (readable(sock))
+		{
+			int bytes_recv = ::recv(sock, data, size, 0);
+			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
+				accumulated_data += data;
+			} // TODO else data loss 
+		}
+		delete[] data;
+	}
+	return accumulated_data;
+}
+
+std::tuple<std::string, std::string> tcp_client::recv_(SOCKET sock, int iter, int excess, int recv_size)
+{
+	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
+}
+
+std::string tcp_client::recv_excess(int size, SOCKET sock)
+{
+	char* data = new char[size + 1]{};
+
+	std::string excess_data;
+
+	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	{
+		excess_data = data;
+	}
+
+	delete[] data;
+
+	return excess_data;
+}
+
+std::tuple<std::string, std::string> tcp_client::half_string(const std::string & victim)
+{
+	const auto half = victim.length() / 2;
+	std::string first(victim.substr(0, half));
+	std::string second(victim.substr(half, half));
+	return std::make_tuple(first, second);
+}
+
+std::tuple<int, int, int, int> tcp_client::calc_iter(int first_size, int second_size, int recv_size)
+{
+	return std::make_tuple((first_size / recv_size), (first_size - (recv_size * (first_size / recv_size))), (second_size / recv_size), (second_size - (recv_size * (second_size / recv_size))));
+}
+
+int tcp_client::generate_solution(int input)
+{
+	int singularity = ((input % 2 == 0) ? input : input / 2);
+	return abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity);
+}
+
 
 
 //WSA_ERROR
