@@ -18,13 +18,13 @@
     <ClInclude Include="precompile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Library\tcp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="helper_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pipe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Library\tcp_server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,10 +32,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Library\tcp.cpp">
+    <ClCompile Include="pipe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pipe.cpp">
+    <ClCompile Include="..\Library\tcp_server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

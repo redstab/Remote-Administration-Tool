@@ -1,6 +1,6 @@
 //Client
-
-#include "..\Library\tcp.h"
+#include "precompile.h"
+#include "..\Library\tcp_client.h"
 
 int main()
 {

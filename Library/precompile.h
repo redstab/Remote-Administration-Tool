@@ -7,10 +7,7 @@
 #include <thread>
 #include <chrono>
 #include <ctime>
-#include <deque>
-#include <random>
 #include <iomanip>
-#include <memoryapi.h>
 #include <TlHelp32.h>
 #include <iphlpapi.h>
 #include <memory>

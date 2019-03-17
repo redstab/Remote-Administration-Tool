@@ -1,7 +1,6 @@
 // Server
-
-#include "..\Library\tcp.h"
-#include "pipe.h"
+#include "precompile.h"
+#include "..\Library\tcp_server.h"
 
 int main()
 {
@@ -35,14 +34,24 @@ int main()
 						{
 							main.list();
 							std::string socket;
-							std::cout << ": ";
+							std::cout << "<cmd>";
 							std::cin >> socket;
 
 							auto msg(main.recv(std::stoi(socket)));
 
-							console << "Head: " << msg.identifier_buffer << " - " << msg.id_size << "\n"
-								<< "Data: " << msg.data_buffer << " - " << msg.data_size << "\n"
-								<< "ErrorCode: " << msg.error_code << "\n";
+							switch(msg.error_code) {
+							case not_readable:
+								console << "Nothing to read from socket " << socket << "\n";
+								break;
+							case success:
+								console << socket << " | " << msg.data_buffer << " | " << msg.identifier_buffer << "\n";
+								
+								break;
+							default:
+								console << "Error " << msg.error_code << "\n";
+								break;
+							}
+
 						}
 					}
 
