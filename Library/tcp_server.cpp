@@ -83,9 +83,10 @@ pipe tcp_server::get_pipe()
 
 void tcp_server::list()
 {
-	for (unsigned int i = 0; i < client_set.fd_count; i++)
-	{
-		std::cout << i << ":" << client_set.fd_array[i] << " ";
+	int t = 0;
+	for (auto client : client_list) {
+		std::cout << client.socket_id << " ";
+		t = client.socket_id;
 	}
 	std::cout << "\n";
 }
@@ -118,7 +119,7 @@ bool tcp_server::bind()
 packet tcp_server::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
-	
+
 
 	const auto header_length = 32;
 	const auto recv_size = 65536;
@@ -201,10 +202,12 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054:
-		closesocket(socket);
-		FD_CLR(socket, &client_set);
-		break;
+	case 10054:{
+			closesocket(socket);
+			FD_CLR(socket, &client_set);
+			//client_list.erase(search_iterator(client_list, socket_id, socket));
+			break;
+	}
 	default:
 		break;
 	}
@@ -260,11 +263,8 @@ void tcp_server::handler()
 
 			auto const current_socket = local_set.fd_array[i];
 
-			if (current_socket == main_socket)
+			if (current_socket == main_socket) // New Client
 			{
-
-				// New Client
-
 				sockaddr_in socket_address{};
 				char host[NI_MAXHOST]{};
 				int address_len = sizeof(socket_address);
@@ -276,19 +276,19 @@ void tcp_server::handler()
 
 				auto current_challanger = client(host, client_socket);
 
-				//TODO create thread for the authentication to not block thread
+				std::thread authentication_thread(&tcp_server::authenticate, this, current_challanger);
 
+				authentication_thread.detach();
 			}
-			else {
-				auto msg(tcp_server::recv(current_socket));
+			else { // New Message
 
-				if (msg.error_code == success) {
-					console << "{" << current_socket << "}[" << msg.data_buffer << "](" << msg.identifier_buffer << ")\n";
+				auto current_client(search_vector(client_list, socket_id, int(current_socket)));
+				if (current_client.socket_id != 0) {
+					if (!current_client.blocking) {
+						auto msg(tcp_server::recv(current_client.socket_id));
+						console << "{" << current_socket << "}[" << msg.data_buffer << "](" << msg.identifier_buffer << ")\n";
+					}
 				}
-				else {
-
-				}
-
 			}
 		}
 	}
@@ -328,7 +328,7 @@ std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
 	for (auto i = 0; i < iter; i++)
 	{
 		char* data = new char[size + 1]{};
-		if (readable(sock))
+		if (readable(sock, 0, 500))
 		{
 			int bytes_recv = ::recv(sock, data, size, 0);
 			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
@@ -351,7 +351,7 @@ std::string tcp_server::recv_excess(int size, SOCKET sock)
 
 	std::string excess_data;
 
-	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock, 0, 500) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
 	{
 		excess_data = data;
 	}
@@ -387,38 +387,63 @@ std::tuple<int, int> tcp_server::generate_password(int min, int max)
 
 void tcp_server::authenticate(client challenger)
 {
-	auto [input, output] = generate_password(10000, 99999);
+	challenger.blocking = true;
 
-	if (tcp_server::send(challenger, std::to_string(input), "SYN")) {
-		console << "Sent Handshake Request - " << input << " to " << challenger.socket_id << ", expects : " << output << "\n";
+	console << "[" << challenger.socket_id << "] New Challenger\n";
 
-		packet client_response;
+	auto [clue, key] = generate_password(10000, 99999);
 
-		if (readable(challenger.socket_id)) {
-			client_response = recv(challenger.socket_id);
-		}
-		
+	console << "[" << challenger.socket_id << "] Generating a clue -> [" << clue << "]\n";
 
-		console << "Got Handshake Response - " << client_response.data_buffer << "\n";
+	if (tcp_server::send(challenger, std::to_string(clue), "authenticate_clue")) {
+		console << "[" << challenger.socket_id << "] Sending clue -> [" << clue << "]\n";
+	}
+	else {
+		console << "[" << challenger.socket_id << "] Could not send clue \n";
+		console << "[" << challenger.socket_id << "] Breaking and disconnecting \n";
+		closesocket(challenger.socket_id);
+		FD_CLR(challenger.socket_id, &client_set);
+		return;
+	}
 
-		if (is_digits(client_response.data_buffer)) {
-			if (std::stoi(client_response.data_buffer) == output) {
-				console << "Client " << challenger.socket_id << " Successfully Authenticated" << "\n";
-				tcp_server::send(challenger, "1", "Authentication Result");
+	console << "[" << challenger.socket_id << "] Expecting the key [" << key << "]\n";
+
+	packet client_response;
+
+	if (readable(challenger.socket_id, 5, 0)) {
+
+		client_response = recv(challenger.socket_id);
+		auto response_key = std::stoi(client_response.data_buffer);
+
+		console << "[" << challenger.socket_id << "] Got the key [" << response_key << "]\n";
+
+		if (response_key == key) {
+			console << "[" << challenger.socket_id << "] Key is Correct, Authenticating Client...\n";
+
+			if (tcp_server::send(challenger, "1", "Authentication")) {
+				console << "[" << challenger.socket_id << "] Successfully Authenticated Client\n";
+				client_list.push_back(challenger);
+				challenger.blocking = false;
 			}
 			else {
-				console << "Client " << challenger.socket_id << " was unsuccessfull in authentication, disconnecting \n";
-				tcp_server::send(challenger, "0", "Authentication Result");
+				console << "[" << challenger.socket_id << "] Could not Authenticate Client, Disconnecting\n";
 				closesocket(challenger.socket_id);
 				FD_CLR(challenger.socket_id, &client_set);
 			}
 		}
+		else {
+			console << "[" << challenger.socket_id << "] Key is Faulty, Disconnecting Client\n";
+			closesocket(challenger.socket_id);
+			FD_CLR(challenger.socket_id, &client_set);
+		}
+
 	}
 	else {
-		console << "Could not send handshake request - " << input << " to " << challenger.socket_id << "\n";
+		console << "[" << challenger.socket_id << "] Never got a key :<\n"
+			<< "[" << challenger.socket_id << "] Late Aborting the Socket\n";
+		closesocket(challenger.socket_id);
+		FD_CLR(challenger.socket_id, &client_set);
 	}
-
-	console << "New Client {" << challenger.socket_id << ", " << challenger.ip_address << "}" << "\n";
 }
 
 std::string tcp_server::pad_text(const std::string & victim)

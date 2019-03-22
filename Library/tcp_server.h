@@ -28,6 +28,11 @@ struct packet
 
 };
 
+template<typename T>
+extern bool compare_value(T& value, T term) {
+	return value == term;
+}
+
 
 struct client {
 	client(std::string ip, int id) {
@@ -38,10 +43,17 @@ struct client {
 	std::string ip_address = "";
 	int socket_id = 0;
 	std::deque<packet> packet_queue;
-	bool need_update = false;
+	bool blocking = false;
 
 	void push_packet(packet input);
 };
+
+enum client_codes {
+	ip_address,
+	socket_id,
+	blocking,
+};
+
 
 /*
 
@@ -229,6 +241,28 @@ private:
 	std::tuple<int, int> generate_password(int, int);
 
 	void authenticate(client);
+	template<typename T>
+	client search_vector(std::vector<client> list, int type, T query) {
+
+		std::vector<std::function<bool(client)>> comparators;
+
+		comparators.push_back([&](client ob) {return ob.ip_address == std::to_string(query); });
+		comparators.push_back([&](client ob) {return ob.socket_id == query; });
+		comparators.push_back([&](client ob) {return ob.blocking == query; });
+
+
+		auto result = std::find_if(std::begin(list), std::end(list), [&](client obj) {
+			return comparators[type](obj);
+			});
+
+		if (result != list.end()) {
+			return *result;
+		}
+		else {
+			return client("", 0);
+		}
+	}
+
 
 	/// <summary>
 	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005

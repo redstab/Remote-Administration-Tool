@@ -14,6 +14,8 @@
 #include <TlHelp32.h>
 #include <iphlpapi.h>
 #include <memory>
+#include <map>
+#include <functional>
 #include <vector>
 #include <algorithm>
 #include <locale>

@@ -45,8 +45,15 @@ bool tcp_client::connect()
 			std::cout << "Handshake Response (" << response << ")" << std::endl;
 			if (tcp_client::send(std::to_string(response), "Response")) {
 				auto result(tcp_client::recv(connection_socket));
-				
-				std::cout << "Authenticated : " << std::boolalpha << std::stoi(result.data_buffer) << std::endl;
+				if (is_digits(result.data_buffer)) {
+					if (std::stoi(result.data_buffer)) {
+						std::cout << "Successfully Authenticated " << std::endl;
+					}
+					else {
+						std::cout << "Could not Authenticate " << std::endl;
+					}
+
+				}
 
 			}
 			
@@ -117,13 +124,19 @@ WSA_ERROR tcp_client::format_error(int error_code)
 	return WSA_ERROR(0);
 
 }
-bool tcp_client::handle_error(WSA_ERROR error, SOCKET socket)
+bool tcp_client::handle_error(WSA_ERROR error, SOCKET sockets)
 {
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054:
-		closesocket(socket);
+	case 10054: case 10061: case 10057:
+		Sleep(100);
+		closesocket(connection_socket);
+		connection_socket = socket(AF_INET, SOCK_STREAM, 0);
+		socket_connect(connection_socket, socket_hint);
+		return true;
+	case 10060:
+
 		break;
 	default:
 		break;
