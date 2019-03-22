@@ -118,39 +118,37 @@ bool tcp_server::bind()
 packet tcp_server::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
+	
 
-	if (readable(sock)) {
+	const auto header_length = 32;
+	const auto recv_size = 65536;
+	char header_buffer[header_length + 1]{};
 
-		const auto header_length = 32;
-		const auto recv_size = 65536;
-		char header_buffer[header_length + 1]{};
+	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
 
-		const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
+	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
+	{
+		const std::string header_string(header_buffer);
 
-		if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
+		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
-			const std::string header_string(header_buffer);
 
-			if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
-			{
+			auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
 
-				auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
+			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-				auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-				auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			return {
+				merge(head_iteration_buffer, head_excess_buffer),
+				merge(data_iteration_buffer, data_excess_buffer),
+				identifier_size,
+				static_cast<long long>(data_size),
+				0
+			};
 
-				return {
-					merge(head_iteration_buffer, head_excess_buffer),
-					merge(data_iteration_buffer, data_excess_buffer),
-					identifier_size,
-					static_cast<long long>(data_size),
-					0
-				};
-
-			}
 		}
 	}
 
@@ -280,16 +278,6 @@ void tcp_server::handler()
 
 				//TODO create thread for the authentication to not block thread
 
-				auto [input, output] = generate_password(10000, 99999);
-
-				if (tcp_server::send(current_challanger, std::to_string(input), "PASSWORD CHECK")) {
-					console << "Sent Handshake Request - " << input << " to " << client_socket << ", expects : " << output << "\n";
-				}
-				else {
-					console << "Could not send handshake request - " << input << " to " << client_socket << "\n";
-				}
-
-				console << "New Client {" << client_socket << ", " << host << "}" << "\n";
 			}
 			else {
 				auto msg(tcp_server::recv(current_socket));
@@ -306,12 +294,12 @@ void tcp_server::handler()
 	}
 }
 
-bool tcp_server::readable(SOCKET sock)
+bool tcp_server::readable(SOCKET sock, int sec, int milli)
 {
 	fd_set socket_descriptor;
 	FD_ZERO(&socket_descriptor);
 	FD_SET(sock, &socket_descriptor);
-	timeval timeout{ 0,500 };
+	timeval timeout{ sec, milli };
 
 	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
 }
@@ -397,7 +385,43 @@ std::tuple<int, int> tcp_server::generate_password(int min, int max)
 	return std::make_tuple(input, abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity));
 }
 
-std::string tcp_server::pad_text(const std::string& victim)
+void tcp_server::authenticate(client challenger)
+{
+	auto [input, output] = generate_password(10000, 99999);
+
+	if (tcp_server::send(challenger, std::to_string(input), "SYN")) {
+		console << "Sent Handshake Request - " << input << " to " << challenger.socket_id << ", expects : " << output << "\n";
+
+		packet client_response;
+
+		if (readable(challenger.socket_id)) {
+			client_response = recv(challenger.socket_id);
+		}
+		
+
+		console << "Got Handshake Response - " << client_response.data_buffer << "\n";
+
+		if (is_digits(client_response.data_buffer)) {
+			if (std::stoi(client_response.data_buffer) == output) {
+				console << "Client " << challenger.socket_id << " Successfully Authenticated" << "\n";
+				tcp_server::send(challenger, "1", "Authentication Result");
+			}
+			else {
+				console << "Client " << challenger.socket_id << " was unsuccessfull in authentication, disconnecting \n";
+				tcp_server::send(challenger, "0", "Authentication Result");
+				closesocket(challenger.socket_id);
+				FD_CLR(challenger.socket_id, &client_set);
+			}
+		}
+	}
+	else {
+		console << "Could not send handshake request - " << input << " to " << challenger.socket_id << "\n";
+	}
+
+	console << "New Client {" << challenger.socket_id << ", " << challenger.ip_address << "}" << "\n";
+}
+
+std::string tcp_server::pad_text(const std::string & victim)
 {
 	const auto head_length = 16;
 	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;

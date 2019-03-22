@@ -36,11 +36,22 @@ bool tcp_client::connect()
 {
 	if (socket_connect(connection_socket, socket_hint)) {
 
-		auto pass(tcp_client::recv(connection_socket));
+		auto handshake(tcp_client::recv(connection_socket));
 
-		std::cout << "[" << pass.data_buffer << "](" << pass.identifier_buffer << ")\n";
+		if (is_digits(handshake.data_buffer)) {
+			int request = std::stoi(handshake.data_buffer);
+			int response = generate_solution(std::stoi(handshake.data_buffer));
+			std::cout << "Handshake Request (" << request << ")" << std::endl;
+			std::cout << "Handshake Response (" << response << ")" << std::endl;
+			if (tcp_client::send(std::to_string(response), "Response")) {
+				auto result(tcp_client::recv(connection_socket));
+				
+				std::cout << "Authenticated : " << std::boolalpha << std::stoi(result.data_buffer) << std::endl;
 
-		std::cout << "Attempting to rebuild the password from " << pass.data_buffer << ", result is : " << generate_solution(std::stoi(pass.data_buffer)) << std::endl;
+			}
+			
+		}
+
 
 		return true;
 	}

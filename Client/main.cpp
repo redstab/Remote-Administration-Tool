@@ -4,7 +4,7 @@
 
 int main()
 {
-	const std::string ip = "192.168.0.85"; // "10.7.240.254"
+	const std::string ip = "10.7.240.254"; // "10.7.240.254"
 	const auto port = 1337;
 
 	tcp_client main;

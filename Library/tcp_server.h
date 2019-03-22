@@ -156,7 +156,7 @@ private:
 	/// </summary>
 	/// <param name="sock">The socket to be tested</param>
 	/// <returns>If the socket is readable</returns>
-	bool readable(SOCKET);
+	bool readable(SOCKET, int, int);
 
 	/// <summary>
 	/// Formats a string of 2 numbers (16bytes*2) to a pair of ints
@@ -227,6 +227,8 @@ private:
 	/// <param name="max">The maximum allowed password</param>
 	/// <returns>A tuple of the random password and its solution</returns>
 	std::tuple<int, int> generate_password(int, int);
+
+	void authenticate(client);
 
 	/// <summary>
 	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
