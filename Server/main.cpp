@@ -32,25 +32,10 @@ int main()
 
 						while (true)
 						{
-							main.list();
-							std::string socket;
+							int socket;
 							std::cout << "<cmd>";
 							std::cin >> socket;
-
-							auto msg(main.recv(std::stoi(socket)));
-
-							switch (msg.error_code) {
-							case not_readable:
-								console << "Nothing to read from socket " << socket << "\n";
-								break;
-							case success:
-								console << socket << " | " << msg.data_buffer << " | " << msg.identifier_buffer << "\n";
-
-								break;
-							default:
-								console << "Error " << msg.error_code << "\n";
-								break;
-							}
+							main.list(socket);
 						}
 					}
 

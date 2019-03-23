@@ -81,14 +81,14 @@ pipe tcp_server::get_pipe()
 	return console;
 }
 
-void tcp_server::list()
+void tcp_server::list(int sock_id)
 {
-	int t = 0;
-	for (auto client : client_list) {
-		std::cout << client.socket_id << " ";
-		t = client.socket_id;
+	auto index(search_vector(client_list, &client::socket_id, sock_id));
+	if (index != client_list.end()) {
+		for (auto pack : index->packet_queue) {
+			std::cout << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << std::endl;
+		}
 	}
-	std::cout << "\n";
 }
 
 bool tcp_server::startup()
@@ -276,19 +276,24 @@ void tcp_server::handler()
 
 				auto current_challanger = client(host, client_socket);
 
-				std::thread authentication_thread(&tcp_server::authenticate, this, current_challanger);
+				std::thread authentication_thread(&tcp_server::authenticate, this, std::ref(current_challanger));
 
 				authentication_thread.detach();
 			}
 			else { // New Message
 
-				auto current_client(search_vector(client_list, socket_id, int(current_socket)));
-				if (current_client.socket_id != 0) {
-					if (!current_client.blocking) {
-						auto msg(tcp_server::recv(current_client.socket_id));
-						console << "{" << current_socket << "}[" << msg.data_buffer << "](" << msg.identifier_buffer << ")\n";
+				auto index(search_vector(client_list, &client::socket_id, int(current_socket)));
+				if (index != client_list.end()) {
+					if (index->socket_id != 0) {
+						if (!index->blocking) {
+							auto msg(tcp_server::recv(index->socket_id));
+							if (msg.error_code == success) {
+								index->packet_queue.push_back(msg);
+							}
+						}
 					}
 				}
+
 			}
 		}
 	}
@@ -380,16 +385,16 @@ std::tuple<int, int> tcp_server::generate_password(int min, int max)
 	std::mt19937 mt(rd());
 	std::uniform_int_distribution<std::mt19937::result_type> distribution(min, max);
 
-	int input = distribution(mt); // (((a ^ (a*a)) ^ a*a*a*a) / 2) % 10*10*10*10
+	int input = distribution(mt);
 	int singularity = ((input % 2 == 0) ? input : input / 2);
 	return std::make_tuple(input, abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity));
 }
 
-void tcp_server::authenticate(client challenger)
+void tcp_server::authenticate(client &challenger)
 {
 	challenger.blocking = true;
 
-	console << "[" << challenger.socket_id << "] New Challenger\n";
+	console << "[" << challenger.ip_address <<  "] New Challenger\n";
 
 	auto [clue, key] = generate_password(10000, 99999);
 
@@ -422,8 +427,8 @@ void tcp_server::authenticate(client challenger)
 
 			if (tcp_server::send(challenger, "1", "Authentication")) {
 				console << "[" << challenger.socket_id << "] Successfully Authenticated Client\n";
-				client_list.push_back(challenger);
 				challenger.blocking = false;
+				client_list.push_back(challenger);
 			}
 			else {
 				console << "[" << challenger.socket_id << "] Could not Authenticate Client, Disconnecting\n";
@@ -436,11 +441,9 @@ void tcp_server::authenticate(client challenger)
 			closesocket(challenger.socket_id);
 			FD_CLR(challenger.socket_id, &client_set);
 		}
-
 	}
 	else {
-		console << "[" << challenger.socket_id << "] Never got a key :<\n"
-			<< "[" << challenger.socket_id << "] Late Aborting the Socket\n";
+		console << "[" << challenger.socket_id << "] Never got a key :<, Disconnecting\n";
 		closesocket(challenger.socket_id);
 		FD_CLR(challenger.socket_id, &client_set);
 	}

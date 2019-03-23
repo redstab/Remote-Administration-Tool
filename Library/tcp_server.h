@@ -28,12 +28,6 @@ struct packet
 
 };
 
-template<typename T>
-extern bool compare_value(T& value, T term) {
-	return value == term;
-}
-
-
 struct client {
 	client(std::string ip, int id) {
 		ip_address = ip;
@@ -47,13 +41,6 @@ struct client {
 
 	void push_packet(packet input);
 };
-
-enum client_codes {
-	ip_address,
-	socket_id,
-	blocking,
-};
-
 
 /*
 
@@ -82,7 +69,7 @@ public:
 
 	pipe get_pipe();
 
-	void list();
+	void list(int);
 
 	bool startup();
 	bool initialize();
@@ -240,29 +227,12 @@ private:
 	/// <returns>A tuple of the random password and its solution</returns>
 	std::tuple<int, int> generate_password(int, int);
 
-	void authenticate(client);
+	void authenticate(client&);
+
 	template<typename T>
-	client search_vector(std::vector<client> list, int type, T query) {
-
-		std::vector<std::function<bool(client)>> comparators;
-
-		comparators.push_back([&](client ob) {return ob.ip_address == std::to_string(query); });
-		comparators.push_back([&](client ob) {return ob.socket_id == query; });
-		comparators.push_back([&](client ob) {return ob.blocking == query; });
-
-
-		auto result = std::find_if(std::begin(list), std::end(list), [&](client obj) {
-			return comparators[type](obj);
-			});
-
-		if (result != list.end()) {
-			return *result;
-		}
-		else {
-			return client("", 0);
-		}
+	std::vector<client>::iterator search_vector(std::vector<client> &list, T client::*member, T value) {
+		return std::find_if(list.begin(), list.end(), [value, member](const client & c) {return c.*member == value; });
 	}
-
 
 	/// <summary>
 	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
