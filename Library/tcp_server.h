@@ -42,13 +42,6 @@ struct client {
 	void push_packet(packet input);
 };
 
-/*
-
-The plan is to recv everything through handler function then pass every packet to each client instruction queue and then when you select a client it will execute and handle the queue
-
-
-*/
-
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 {
 	return (error.code == 0 && error.msg.empty())
@@ -229,9 +222,9 @@ private:
 
 	void authenticate(client&);
 
-	template<typename T>
-	std::vector<client>::iterator search_vector(std::vector<client> &list, T client::*member, T value) {
-		return std::find_if(list.begin(), list.end(), [value, member](const client & c) {return c.*member == value; });
+	template<typename T, typename V>// https://stackoverflow.com/a/55315987/4363773
+	typename std::vector<V>::iterator search_vector(std::vector<V> &list, T V::*member, T value) { 
+		return std::find_if(list.begin(), list.end(), [value, member](const V & c) {return c.*member == value; });
 	}
 
 	/// <summary>

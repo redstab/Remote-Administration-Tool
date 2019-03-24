@@ -256,6 +256,7 @@ void tcp_server::handler()
 	while (true)
 	{
 		auto local_set = client_set;
+
 		auto socket_count = select(0, &local_set, nullptr, nullptr, nullptr);
 
 		for (auto i = 0; i < socket_count; i++)
@@ -264,10 +265,15 @@ void tcp_server::handler()
 			auto const current_socket = local_set.fd_array[i];
 
 			if (current_socket == main_socket) // New Client
+			
 			{
+
 				sockaddr_in socket_address{};
+
 				char host[NI_MAXHOST]{};
+
 				int address_len = sizeof(socket_address);
+
 				auto client_socket = accept(main_socket, reinterpret_cast<sockaddr*>(&socket_address), &address_len);
 
 				FD_SET(client_socket, &client_set);
@@ -279,8 +285,13 @@ void tcp_server::handler()
 				std::thread authentication_thread(&tcp_server::authenticate, this, std::ref(current_challanger));
 
 				authentication_thread.detach();
+
 			}
-			else { // New Message
+			
+			else  // New Message
+			
+			{
+
 				auto current_cli(search_vector(client_list, &client::socket_id, int(current_socket)));
 				if (current_cli != client_list.end()) {
 					if (current_cli->socket_id != 0) {
