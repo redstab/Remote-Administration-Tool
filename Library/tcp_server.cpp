@@ -281,14 +281,13 @@ void tcp_server::handler()
 				authentication_thread.detach();
 			}
 			else { // New Message
-
-				auto index(search_vector(client_list, &client::socket_id, int(current_socket)));
-				if (index != client_list.end()) {
-					if (index->socket_id != 0) {
-						if (!index->blocking) {
-							auto msg(tcp_server::recv(index->socket_id));
+				auto current_cli(search_vector(client_list, &client::socket_id, int(current_socket)));
+				if (current_cli != client_list.end()) {
+					if (current_cli->socket_id != 0) {
+						if (!current_cli->blocking) {
+							auto msg(tcp_server::recv(current_cli->socket_id));
 							if (msg.error_code == success) {
-								index->packet_queue.push_back(msg);
+								current_cli->packet_queue.push_back(msg);
 							}
 						}
 					}
