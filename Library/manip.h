@@ -1,5 +1,5 @@
 #pragma once
-#include "..\Server\precompile.h"
+#include "..\Library\precompile.h"
 namespace manip
 {
 	/// <summary>

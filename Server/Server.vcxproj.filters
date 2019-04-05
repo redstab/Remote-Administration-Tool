@@ -27,6 +27,9 @@
     <ClInclude Include="..\Library\tcp_server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cli.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

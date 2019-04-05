@@ -81,14 +81,22 @@ pipe tcp_server::get_pipe()
 	return console;
 }
 
-void tcp_server::list(int sock_id)
+void tcp_server::list_packets(std::string sock_string)
 {
-	auto index(search_vector(client_list, &client::socket_id, sock_id));
-	if (index != client_list.end()) {
-		for (auto pack : index->packet_queue) {
-			std::cout << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << std::endl;
+	if (is_digits(sock_string)) {
+		int sock_id = std::stoi(sock_string);
+		auto index(search_vector(client_list, &client::socket_id, sock_id));
+		if (index != client_list.end()) {
+			for (auto pack : index->packet_queue) {
+				std::cout << pack;
+			}
 		}
 	}
+}
+
+void tcp_server::prompt(std::string function, std::string arguments)
+{
+	commandline_function[function](arguments);
 }
 
 bool tcp_server::startup()
@@ -202,17 +210,16 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054:{
-			closesocket(socket);
-			FD_CLR(socket, &client_set);
-			//client_list.erase(search_iterator(client_list, socket_id, socket));
+	case 10054:{ // Client Dropped Connection
+			auto disconnected_client = search_vector(client_list, &client::socket_id, int(socket));
+			client_list.erase(disconnected_client);
+			FD_CLR(disconnected_client->socket_id, &client_set);
+			closesocket(disconnected_client->socket_id);
 			break;
 	}
 	default:
-		break;
+		console << socket << "|" << error << "\n";
 	}
-
-	std::cout << error;
 
 	return error.code == 0;
 }

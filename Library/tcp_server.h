@@ -1,5 +1,5 @@
 #pragma once
-#include "..\Server\precompile.h"
+#include "..\Library\precompile.h"
 #include "..\Server\pipe.h"
 
 enum error_codes {
@@ -49,6 +49,11 @@ inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 		: os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
 }
 
+inline std::ostream& operator<<(std::ostream& os, const packet& pack)
+{
+	return os << "[" << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << "]" << std::endl;
+}
+
 class tcp_server
 {
 public:
@@ -62,7 +67,9 @@ public:
 
 	pipe get_pipe();
 
-	void list(int);
+	void list_packets(std::string);
+
+	void prompt(std::string, std::string);
 
 	bool startup();
 	bool initialize();
@@ -75,6 +82,10 @@ public:
 	bool send(client, std::string, std::string);
 
 private:
+
+	std::map<std::string, std::function<void(std::string)>> commandline_function = {
+		{"packets", [&](std::string args) {return list_packets(args); }}
+	};
 
 	int accepting_port = 0;
 	bool output_verbosity = true;

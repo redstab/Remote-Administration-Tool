@@ -1,5 +1,5 @@
 // Server
-#include "precompile.h"
+#include "..\Library\precompile.h"
 #include "..\Library\tcp_server.h"
 
 int main()
@@ -32,10 +32,11 @@ int main()
 
 						while (true)
 						{
-							int socket;
+							std::string function, argument;
 							std::cout << "<cmd>";
-							std::cin >> socket;
-							main.list(socket);
+							std::cin >> function >> argument;
+							main.prompt(function, argument);
+							//main.list_packets(socket);
 						}
 					}
 

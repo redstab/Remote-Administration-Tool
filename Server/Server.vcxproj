@@ -165,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Library\tcp_server.h" />
+    <ClInclude Include="cli.h" />
     <ClInclude Include="helper_file.h" />
     <ClInclude Include="pipe.h" />
     <ClInclude Include="precompile.h" />

@@ -1,4 +1,4 @@
-#include "precompile.h"
+#include "..\Library\precompile.h"
 #include "pipe.h"
 pipe::pipe(std::string name)
 {
