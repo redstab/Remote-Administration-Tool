@@ -26,6 +26,17 @@ namespace manip
 
 	}
 
+	inline void toogle_output(std::ostream &output, bool verbose) {
+		if (!verbose) {
+			output.setstate(std::ios::failbit);
+		}
+		else {
+			output.clear();
+		}
+		
+	}
+
+
 	/// <summary>
 	/// Gets the localization from the I/O
 	/// </summary>

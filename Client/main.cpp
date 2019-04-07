@@ -15,11 +15,11 @@ int main()
 
 	if (main.startup())
 	{
-		std::cout << "Client has successfully started up\n";
+		std::cout << "[+] Client has successfully started up\n";
 
 		if (main.connect())
 		{
-			std::cout << "Client has connected to the server\n";
+			std::cout << "[+] Client has connected to the server\n";
 
 			std::string input;
 
@@ -30,12 +30,12 @@ int main()
 		}
 		else
 		{
-			std::cout << "Client could not connect to the server\n";
+			std::cout << "[-] Client could not connect to the server\n";
 		}
 	}
 	else
 	{
-		std::cout << "Client could not start up\n";
+		std::cout << "[-] Client could not start up\n";
 	}
 
 	std::cin.get();

@@ -70,6 +70,8 @@ private:
 	std::string ip_address;
 	int connection_port = 0;
 
+	bool connected = false;
+
 	/// <summary>
 	/// Attempts to startup the WinSockApi and Initializes the socket
 	/// </summary>

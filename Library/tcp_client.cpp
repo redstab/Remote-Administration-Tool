@@ -41,16 +41,17 @@ bool tcp_client::connect()
 		if (is_digits(handshake.data_buffer)) {
 			int request = std::stoi(handshake.data_buffer);
 			int response = generate_solution(std::stoi(handshake.data_buffer));
-			std::cout << "Handshake Request (" << request << ")" << std::endl;
-			std::cout << "Handshake Response (" << response << ")" << std::endl;
+			//std::cout << "Handshake Request (" << request << ")" << std::endl;
+			//std::cout << "Handshake Response (" << response << ")" << std::endl;
 			if (tcp_client::send(std::to_string(response), "Response")) {
 				auto result(tcp_client::recv(connection_socket));
 				if (is_digits(result.data_buffer)) {
 					if (std::stoi(result.data_buffer)) {
-						std::cout << "Successfully Authenticated " << std::endl;
+						std::cout << "[+] Successfully Authenticated using code: " << response << std::endl;
+						connected = true;
 					}
 					else {
-						std::cout << "Could not Authenticate " << std::endl;
+						std::cout << "[-] Could not Authenticate " << std::endl;
 					}
 
 				}
@@ -60,10 +61,10 @@ bool tcp_client::connect()
 		}
 
 
-		return true;
+		
 	}
 
-	return false;
+	return true;
 }
 
 bool tcp_client::send(std::string input, std::string head)
@@ -129,21 +130,20 @@ bool tcp_client::handle_error(WSA_ERROR error, SOCKET sockets)
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054: case 10061: case 10057:
-		Sleep(100);
+	case 10054: case 10061: case 10057: case 10060:
+		if (connected) {
+			std::cout << "\n[-] Dropped connection to server" << std::endl;
+			connected = false;
+		}
 		closesocket(connection_socket);
 		connection_socket = socket(AF_INET, SOCK_STREAM, 0);
-		socket_connect(connection_socket, socket_hint);
-		return true;
-	case 10060:
-
+		tcp_client::connect(); // Recursively calling handle_error in socket_connect() so that it only finishes after connection
+		std::cout << "[+] Successfully reconnected to server" << std::endl;
 		break;
 	default:
+		std::cout << error;
 		break;
 	}
-
-	std::cout << error;
-
 	return error.code == 0;
 }
 

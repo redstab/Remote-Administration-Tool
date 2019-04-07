@@ -1,7 +1,8 @@
 #include "..\Library\precompile.h"
 #include "pipe.h"
-pipe::pipe(std::string name)
+pipe::pipe(std::string name, bool verb)
 {
+	verbose = verb;
 	set_name(name);
 }
 
@@ -51,6 +52,7 @@ bool pipe::send_data(std::string msg)
 
 void pipe::run_pe(void* Image)
 {
+	manip::toogle_output(std::cout,verbose);
 	auto error = [=](int error) {
 		char msg_buf[256]{ '\0' };
 
@@ -96,6 +98,7 @@ void pipe::run_pe(void* Image)
 	if (NtHeader->Signature == IMAGE_NT_SIGNATURE)
 	{
 		std::ostream hexout(std::cout.rdbuf());
+		manip::toogle_output(hexout, verbose);
 		hexout << std::showbase
 			<< std::internal
 			<< std::setfill('0');
@@ -167,6 +170,7 @@ void pipe::run_pe(void* Image)
 			std::cout << "[run_pe] Could not create suspended process e[" << GetLastError() << "]" << std::endl;
 		}
 	}
+	manip::toogle_output(std::cout, true);
 }
 void pipe::set_name(std::string name)
 {

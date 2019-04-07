@@ -1,4 +1,4 @@
-#include "precompile.h"
+#include "..\Library\precompile.h"
 #include "tcp_server.h"
 #include "..\Server\helper_file.h"
 //Server
@@ -39,7 +39,7 @@ tcp_server::tcp_server(int port)
 
 tcp_server::tcp_server(std::string name)
 {
-	console = pipe(name);
+	console = pipe(name, false);
 
 	if (console.listen()) {
 
@@ -411,18 +411,10 @@ void tcp_server::authenticate(client &challenger)
 {
 	challenger.blocking = true;
 
-	console << "[" << challenger.ip_address <<  "] New Challenger\n";
-
 	auto [clue, key] = generate_password(10000, 99999);
 
-	console << "[" << challenger.socket_id << "] Generating a clue -> [" << clue << "]\n";
-
-	if (tcp_server::send(challenger, std::to_string(clue), "authenticate_clue")) {
-		console << "[" << challenger.socket_id << "] Sending clue -> [" << clue << "]\n";
-	}
-	else {
-		console << "[" << challenger.socket_id << "] Could not send clue \n";
-		console << "[" << challenger.socket_id << "] Breaking and disconnecting \n";
+	if (!tcp_server::send(challenger, std::to_string(clue), "authenticate_clue")) {
+		console << "[-] [" << challenger.ip_address << "] ";
 		closesocket(challenger.socket_id);
 		FD_CLR(challenger.socket_id, &client_set);
 		return;

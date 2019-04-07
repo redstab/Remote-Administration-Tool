@@ -5,7 +5,7 @@
 class pipe {
 public:
 	pipe() {};
-	pipe(std::string name);
+	pipe(std::string name, bool verb);
 
 	bool listen();
 	void set_name(std::string name);
@@ -27,4 +27,5 @@ public:
 private:
 	HANDLE pipe_handle{};
 	std::string pipe_name = R"(\\.\pipe\)";
+	bool verbose = false;
 };
