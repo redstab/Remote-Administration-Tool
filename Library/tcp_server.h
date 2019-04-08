@@ -29,16 +29,21 @@ struct packet
 };
 
 struct client {
-	client(std::string ip, int id) {
+	client(std::string ip, int id, std::string nm) {
 		ip_address = ip;
 		socket_id = id;
+		name = nm;
 	}
 
-	std::string ip_address = "";
+	void set_block(bool value) {
+		blocking = value;
+	}
+
+	std::string ip_address;
+	std::string name;
 	int socket_id = 0;
 	std::deque<packet> packet_queue;
 	bool blocking = false;
-
 	void push_packet(packet input);
 };
 
@@ -64,6 +69,8 @@ public:
 
 	int get_port() const;
 	void set_port(int);
+
+	void set_prefix(std::string);
 
 	pipe get_pipe();
 
@@ -94,6 +101,8 @@ private:
 	fd_set client_set{};
 	SOCKET main_socket{};
 	std::thread manager_thread;
+
+	std::string name_prefix = "";
 
 	std::vector<client> client_list;
 
@@ -231,11 +240,11 @@ private:
 	/// <returns>A tuple of the random password and its solution</returns>
 	std::tuple<int, int> generate_password(int, int);
 
-	void authenticate(client&);
+	void authenticate(client);
 
 	template<typename T, typename V>// https://stackoverflow.com/a/55315987/4363773
 	typename std::vector<V>::iterator search_vector(std::vector<V> &list, T V::*member, T value) { 
-		return std::find_if(list.begin(), list.end(), [value, member](const V & c) {return c.*member == value; });
+		return std::find_if(list.begin(), list.end(), [value, member](V & c) {return c.*member == value; });
 	}
 
 	/// <summary>

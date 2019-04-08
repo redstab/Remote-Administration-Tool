@@ -70,6 +70,11 @@ void tcp_server::set_port(int new_port)
 	accepting_port = new_port;
 }
 
+void tcp_server::set_prefix(std::string input)
+{
+	name_prefix = input;
+}
+
 pipe tcp_server::get_pipe()
 {
 	return console;
@@ -204,12 +209,13 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054:{ // Client Dropped Connection
-			auto disconnected_client = search_vector(client_list, &client::socket_id, int(socket));
-			client_list.erase(disconnected_client);
-			FD_CLR(disconnected_client->socket_id, &client_set);
-			closesocket(disconnected_client->socket_id);
-			break;
+	case 10054: { // Client Dropped Connection
+		auto disconnected_client(search_vector(client_list, &client::socket_id, int(socket)));
+		console << "[-] Disconnected [" << disconnected_client->ip_address << "]\n";
+		client_list.erase(disconnected_client);
+		FD_CLR(disconnected_client->socket_id, &client_set);
+		closesocket(disconnected_client->socket_id);
+		break;
 	}
 	default:
 		console << socket << "|" << error << "\n";
@@ -266,7 +272,7 @@ void tcp_server::handler()
 			auto const current_socket = local_set.fd_array[i];
 
 			if (current_socket == main_socket) // New Client
-			
+
 			{
 
 				sockaddr_in socket_address{};
@@ -281,16 +287,16 @@ void tcp_server::handler()
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
-				auto current_challanger = client(host, client_socket);
+				auto current_challanger = client(host, client_socket, std::string(name_prefix + "_" + std::to_string(current_socket)));
 
-				std::thread authentication_thread(&tcp_server::authenticate, this, std::ref(current_challanger));
+				std::thread authentication_thread(&tcp_server::authenticate, this, current_challanger);
 
 				authentication_thread.detach();
 
 			}
-			
+
 			else  // New Message
-			
+
 			{
 
 				auto current_cli(search_vector(client_list, &client::socket_id, int(current_socket)));
@@ -401,55 +407,36 @@ std::tuple<int, int> tcp_server::generate_password(int min, int max)
 	return std::make_tuple(input, abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity));
 }
 
-void tcp_server::authenticate(client &challenger)
+void tcp_server::authenticate(client challenger)
 {
-	challenger.blocking = true;
+	challenger.set_block(true); // Makes current client non readable for manager function
 
 	auto [clue, key] = generate_password(10000, 99999);
 
-	if (!tcp_server::send(challenger, std::to_string(clue), "authenticate_clue")) {
-		console << "[-] [" << challenger.ip_address << "] ";
-		closesocket(challenger.socket_id);
-		FD_CLR(challenger.socket_id, &client_set);
-		return;
-	}
+	if (tcp_server::send(challenger, std::to_string(clue), "authenticate_clue")) {
 
-	console << "[" << challenger.socket_id << "] Expecting the key [" << key << "]\n";
+		if (readable(challenger.socket_id, 5, 0)) {
 
-	packet client_response;
+			packet client_response = recv(challenger.socket_id);
 
-	if (readable(challenger.socket_id, 5, 0)) {
+			if (is_digits(client_response.data_buffer)) {
 
-		client_response = recv(challenger.socket_id);
-		auto response_key = std::stoi(client_response.data_buffer);
+				auto response_key = std::stoi(client_response.data_buffer);
 
-		console << "[" << challenger.socket_id << "] Got the key [" << response_key << "]\n";
-
-		if (response_key == key) {
-			console << "[" << challenger.socket_id << "] Key is Correct, Authenticating Client...\n";
-
-			if (tcp_server::send(challenger, "1", "Authentication")) {
-				console << "[" << challenger.socket_id << "] Successfully Authenticated Client\n";
-				challenger.blocking = false;
-				client_list.push_back(challenger);
+				if (response_key == key && tcp_server::send(challenger, "1", "Authentication")) {
+					console << "[+] Connected [" << challenger.ip_address << "] as " << challenger.socket_id << " named " << challenger.kys << "\n";
+					challenger.set_block(false);
+					client_list.push_back(challenger);
+					return;
+				}
 			}
-			else {
-				console << "[" << challenger.socket_id << "] Could not Authenticate Client, Disconnecting\n";
-				closesocket(challenger.socket_id);
-				FD_CLR(challenger.socket_id, &client_set);
-			}
-		}
-		else {
-			console << "[" << challenger.socket_id << "] Key is Faulty, Disconnecting Client\n";
-			closesocket(challenger.socket_id);
-			FD_CLR(challenger.socket_id, &client_set);
+
 		}
 	}
-	else {
-		console << "[" << challenger.socket_id << "] Never got a key :<, Disconnecting\n";
-		closesocket(challenger.socket_id);
-		FD_CLR(challenger.socket_id, &client_set);
-	}
+
+	console << "[-] Disconnected [" << challenger.ip_address << "] ";
+	closesocket(challenger.socket_id);
+	FD_CLR(challenger.socket_id, &client_set);
 }
 
 std::string tcp_server::pad_text(const std::string & victim)

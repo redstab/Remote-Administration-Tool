@@ -21,3 +21,4 @@
 #include <locale>
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment (lib, "ws2_32.lib")
+#pragma warning(disable : 4996)

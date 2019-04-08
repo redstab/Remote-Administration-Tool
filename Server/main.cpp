@@ -10,6 +10,8 @@ int main()
 
 	main.set_port(1337);
 
+	main.set_prefix("Guest");
+
 	if (main.startup())
 	{
 		console << "[+] Server startup sequence" << '\n';

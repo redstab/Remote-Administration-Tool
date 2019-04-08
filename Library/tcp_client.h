@@ -187,3 +187,25 @@ private:
 	int generate_solution(int);
 
 };
+
+inline std::string dns_lookup(std::string domain) {
+
+	WSADATA wsa;
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) == ERROR_SUCCESS) {
+		addrinfo* result{};
+		addrinfo hints{};
+
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+
+		if (getaddrinfo(domain.c_str(), nullptr, &hints, &result) == ERROR_SUCCESS) {
+			char ip_buffer[256];
+			DWORD size = 256;
+			WSAAddressToStringA(result->ai_addr, result->ai_addrlen, nullptr, ip_buffer, &size);
+			return std::string(ip_buffer);
+		}
+	}
+
+	return std::string();
+}
