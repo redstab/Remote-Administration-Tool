@@ -12,23 +12,23 @@ int main()
 
 	if (main.startup())
 	{
-		console << "Server started up successfully" << '\n';
+		console << "[+] Server startup sequence" << '\n';
 
 		if (main.initialize())
 		{
-			console << "Socket successfully initialized" << '\n';
+			console << "[+] Socket initialized" << '\n';
 
 			if (main.bind())
 			{
-				console << "Server successfully bound to get_port {" << main.get_port() << "}" << '\n';
+				console << "[+] Bound to port " << main.get_port() << "\n";
 
 				if (main.listen())
 				{
-					console << "Server is now listening for incoming connections" << '\n';
+					console << "[+] Server is now listening" << '\n';
 
 					if (main.manager())
 					{
-						console << "Server has successfully started client handler" << '\n';
+						console << "[+] Started client handler" << '\n';
 
 						while (true)
 						{
@@ -40,26 +40,26 @@ int main()
 						}
 					}
 
-					console << "Server could not start handler thread" << '\n';
+					console << "[-] Server could not start handler thread" << '\n';
 				}
 				else
 				{
-					console << "Server could not start listening for connections" << '\n';
+					console << "[-] Server could not start listening for connections" << '\n';
 				}
 			}
 			else
 			{
-				console << "Server could not bind to get_port {" << main.get_port() << "}" << '\n';
+				console << "[-] Server could not bind to get_port {" << main.get_port() << "}" << '\n';
 			}
 		}
 		else
 		{
-			console << "Server could not initialize a socket" << '\n';
+			console << "[-] Server could not initialize a socket" << '\n';
 		}
 	}
 	else
 	{
-		console << "Server could not be started" << '\n';
+		console << "[-] Server could not be started" << '\n';
 	}
 
 	std::cin.get();

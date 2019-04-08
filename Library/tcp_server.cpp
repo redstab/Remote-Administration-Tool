@@ -42,13 +42,7 @@ tcp_server::tcp_server(std::string name)
 	console = pipe(name, false);
 
 	if (console.listen()) {
-
-		std::cout << "Successfully started pipe" << std::endl;
-
 		console.run_pe(helper_exe);
-
-		std::cout << "Successfully executed run_pe" << std::endl;
-
 	}
 
 	else {
