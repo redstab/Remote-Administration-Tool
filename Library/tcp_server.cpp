@@ -93,6 +93,13 @@ void tcp_server::list_packets(std::string sock_string)
 	}
 }
 
+void tcp_server::list_clients(std::string args)
+{
+	for (auto cli : client_list) {
+		std::cout << "[" << cli.socket_id << "|" << cli.name << "|" << cli.ip_address << "|" << std::boolalpha << cli.blocking << "]" << std::endl;
+	}
+}
+
 void tcp_server::prompt(std::string function, std::string arguments)
 {
 	commandline_function[function](arguments);
@@ -424,7 +431,7 @@ void tcp_server::authenticate(client challenger)
 				auto response_key = std::stoi(client_response.data_buffer);
 
 				if (response_key == key && tcp_server::send(challenger, "1", "Authentication")) {
-					console << "[+] Connected [" << challenger.ip_address << "] as " << challenger.socket_id << " named " << challenger.kys << "\n";
+					console << "[+] Connected [" << challenger.ip_address << "] as " << challenger.socket_id << " named " << challenger.name << "\n";
 					challenger.set_block(false);
 					client_list.push_back(challenger);
 					return;
