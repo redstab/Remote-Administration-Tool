@@ -59,6 +59,11 @@ inline std::ostream& operator<<(std::ostream& os, const packet& pack)
 	return os << "[" << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << "]" << std::endl;
 }
 
+inline std::ostream& operator<<(std::ostream& os, const client& cli)
+{
+	return os << "[" << cli.socket_id << "|" << cli.name << "|" << cli.ip_address << "|" << std::boolalpha << cli.blocking << "]";
+}
+
 class tcp_server
 {
 public:

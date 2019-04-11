@@ -4,7 +4,7 @@
 
 int main()
 {
-	const std::string ip = dns_lookup("472.zapto.org"); // "10.7.240.254"
+	const std::string ip = dns_lookup("472.zapto.org");
 	const auto port = 1337;
 
 	tcp_client main;

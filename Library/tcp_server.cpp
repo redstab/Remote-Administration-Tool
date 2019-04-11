@@ -95,9 +95,31 @@ void tcp_server::list_packets(std::string sock_string)
 
 void tcp_server::list_clients(std::string args)
 {
-	for (auto cli : client_list) {
-		std::cout << "[" << cli.socket_id << "|" << cli.name << "|" << cli.ip_address << "|" << std::boolalpha << cli.blocking << "]" << std::endl;
+	std::unordered_map<std::string, std::function<void()>> arg_map{
+
+		{"latest", [&] {
+			std::cout << client_list.back() << std::endl;
+		}},
+
+		{"oldest", [&] {
+			std::cout << client_list.front() << std::endl;
+		}},
+
+		{"all", [&] {
+			for (auto cli : client_list) {
+				std::cout << cli << std::endl;
+			}
+		}}
+
+	};
+
+	if (arg_map.count(args)) {
+		arg_map[args]();
 	}
+	else {
+		std::cout << "Syntax error: \"" << args << "\"" << std::endl;
+	}
+
 }
 
 void tcp_server::prompt(std::string function, std::string arguments)
