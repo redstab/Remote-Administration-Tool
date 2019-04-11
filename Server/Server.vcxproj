@@ -157,17 +157,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Library\pipe.cpp" />
     <ClCompile Include="..\Library\tcp_server.cpp" />
     <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="pipe.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Library\helper_file.h" />
+    <ClInclude Include="..\Library\pipe.h" />
     <ClInclude Include="..\Library\tcp_server.h" />
-    <ClInclude Include="cli.h" />
-    <ClInclude Include="helper_file.h" />
-    <ClInclude Include="pipe.h" />
     <ClInclude Include="precompile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

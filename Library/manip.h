@@ -26,6 +26,22 @@ namespace manip
 
 	}
 
+	inline std::string zero_pad(int input, int amount) {
+		std::stringstream stream_buffer;
+		stream_buffer << std::setw(amount) << std::setfill('0') << input;
+		return stream_buffer.str();
+	}
+
+	inline void argument_passer(std::unordered_map<std::string, std::function<void()>> arg_map, std::string args) {
+		if (arg_map.count(args)) {
+			arg_map[args]();
+		}
+		else {
+			std::cout << "Syntax error: \"" << args << "\"" << std::endl;
+		}
+	}
+
+
 	inline void toogle_output(std::ostream &output, bool verbose) {
 		if (!verbose) {
 			output.setstate(std::ios::failbit);

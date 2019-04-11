@@ -1,6 +1,6 @@
 #pragma once
 #include "..\Library\precompile.h"
-#include "..\Server\pipe.h"
+#include "..\Library\pipe.h"
 
 enum error_codes {
 	not_readable = -1,

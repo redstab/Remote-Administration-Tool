@@ -1,6 +1,6 @@
 #include "..\Library\precompile.h"
 #include "tcp_server.h"
-#include "..\Server\helper_file.h"
+#include "helper_file.h"
 //Server
 
 tcp_server::tcp_server(int port)
@@ -95,7 +95,7 @@ void tcp_server::list_packets(std::string sock_string)
 
 void tcp_server::list_clients(std::string args)
 {
-	std::unordered_map<std::string, std::function<void()>> arg_map{
+	manip::argument_passer({
 
 		{"latest", [&] {
 			std::cout << client_list.back() << std::endl;
@@ -111,15 +111,7 @@ void tcp_server::list_clients(std::string args)
 			}
 		}}
 
-	};
-
-	if (arg_map.count(args)) {
-		arg_map[args]();
-	}
-	else {
-		std::cout << "Syntax error: \"" << args << "\"" << std::endl;
-	}
-
+	}, args);
 }
 
 void tcp_server::prompt(std::string function, std::string arguments)
@@ -240,7 +232,7 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 		break;
 	case 10054: { // Client Dropped Connection
 		auto disconnected_client(search_vector(client_list, &client::socket_id, int(socket)));
-		console << "[-] Disconnected [" << disconnected_client->ip_address << "]\n";
+		console << "[-] Disconnected [" << disconnected_client->name << "]\n";
 		client_list.erase(disconnected_client);
 		FD_CLR(disconnected_client->socket_id, &client_set);
 		closesocket(disconnected_client->socket_id);
@@ -316,7 +308,7 @@ void tcp_server::handler()
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
-				auto current_challanger = client(host, client_socket, std::string(name_prefix + "_" + std::to_string(current_socket)));
+				auto current_challanger = client(host, client_socket, std::string(name_prefix + "_" + manip::zero_pad(client_list.size(), 3)));
 
 				std::thread authentication_thread(&tcp_server::authenticate, this, current_challanger);
 
