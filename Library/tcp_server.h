@@ -98,7 +98,24 @@ private:
 
 	std::map<std::string, std::function<void(std::string)>> commandline_function = {
 		{"packets", [&](std::string args) {list_packets(args); }},
-		{"list", [&](std::string args){list_clients(args); }}
+		{"list", [&](std::string args){	
+			manip::argument_passer({
+
+				{"latest", [&] {
+					std::cout << client_list.back() << std::endl;
+				}},
+
+				{"oldest", [&] {
+					std::cout << client_list.front() << std::endl;
+				}},
+
+				{"all", [&] {
+					for (auto cli : client_list) {
+						std::cout << cli << std::endl;
+					}
+				}}
+
+			}, args); }}
 	};
 
 	int accepting_port = 0;

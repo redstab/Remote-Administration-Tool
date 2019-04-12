@@ -41,6 +41,10 @@ namespace manip
 		}
 	}
 
+	template<typename T, typename D>
+	inline bool map_contains(std::map<T, D> map, T argument) {
+		return map.count(argument);
+	}
 
 	inline void toogle_output(std::ostream &output, bool verbose) {
 		if (!verbose) {

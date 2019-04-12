@@ -95,28 +95,17 @@ void tcp_server::list_packets(std::string sock_string)
 
 void tcp_server::list_clients(std::string args)
 {
-	manip::argument_passer({
 
-		{"latest", [&] {
-			std::cout << client_list.back() << std::endl;
-		}},
-
-		{"oldest", [&] {
-			std::cout << client_list.front() << std::endl;
-		}},
-
-		{"all", [&] {
-			for (auto cli : client_list) {
-				std::cout << cli << std::endl;
-			}
-		}}
-
-	}, args);
 }
 
 void tcp_server::prompt(std::string function, std::string arguments)
 {
-	commandline_function[function](arguments);
+	if (manip::map_contains(commandline_function, arguments)) {
+		commandline_function[function](arguments);
+	}
+	else {
+		std::cout << "Syntax \"" << function << "\"" << std::endl;
+	}
 }
 
 bool tcp_server::startup()
