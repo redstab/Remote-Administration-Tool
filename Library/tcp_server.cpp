@@ -100,11 +100,11 @@ void tcp_server::list_clients(std::string args)
 
 void tcp_server::prompt(std::string function, std::string arguments)
 {
-	if (manip::map_contains(commandline_function, arguments)) {
+	if (manip::map_contains(commandline_function, function)) {
 		commandline_function[function](arguments);
 	}
 	else {
-		std::cout << "Syntax \"" << function << "\"" << std::endl;
+		std::cout << "'"<< function << "' is not a recognized command." << std::endl;
 	}
 }
 

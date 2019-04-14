@@ -37,7 +37,7 @@ namespace manip
 			arg_map[args]();
 		}
 		else {
-			std::cout << "Syntax error: \"" << args << "\"" << std::endl;
+			std::cout << "The syntax of this command is incorrect." << std::endl;
 		}
 	}
 
@@ -46,14 +46,24 @@ namespace manip
 		return map.count(argument);
 	}
 
-	inline void toogle_output(std::ostream &output, bool verbose) {
+	inline void toogle_output(std::ostream& output, bool verbose) {
 		if (!verbose) {
 			output.setstate(std::ios::failbit);
 		}
 		else {
 			output.clear();
 		}
-		
+
+	}
+
+	inline void command_line(std::function<void(std::string, std::string)> prompt_func) {
+		std::string line, function, argument;
+		std::getline(std::cin, line);
+		if (!line.empty()) {
+			std::stringstream ss(line);
+			ss >> function >> argument;
+			prompt_func(function, argument);
+		}
 	}
 
 
