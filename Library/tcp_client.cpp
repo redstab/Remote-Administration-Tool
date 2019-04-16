@@ -47,7 +47,7 @@ bool tcp_client::connect()
 				auto result(tcp_client::recv(connection_socket));
 				if (is_digits(result.data_buffer)) {
 					if (std::stoi(result.data_buffer)) {
-						std::cout << "[+] Successfully Authenticated using code: " << response << std::endl;
+						std::cout << "[+] Successfully authenticated and connected using code: " << response << std::endl;
 						connected = true;
 					}
 					else {
@@ -59,9 +59,9 @@ bool tcp_client::connect()
 			}
 			
 		}
-
-
-		
+	}
+	else {
+		return false;
 	}
 
 	return true;
@@ -137,8 +137,7 @@ bool tcp_client::handle_error(WSA_ERROR error, SOCKET sockets)
 		}
 		closesocket(connection_socket);
 		connection_socket = socket(AF_INET, SOCK_STREAM, 0);
-		tcp_client::connect(); // Recursively calling handle_error in socket_connect() so that it only finishes after connection
-		std::cout << "[+] Successfully reconnected to server" << std::endl;
+		tcp_client::connect();
 		break;
 	default:
 		std::cout << error;

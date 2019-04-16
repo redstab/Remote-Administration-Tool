@@ -54,12 +54,12 @@ inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 		: os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const packet& pack)
+inline std::ostream& operator<<(std::ostream & os, const packet & pack)
 {
 	return os << "[" << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << "]" << std::endl;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const client& cli)
+inline std::ostream& operator<<(std::ostream & os, const client & cli)
 {
 	return os << "[" << cli.socket_id << "|" << cli.name << "|" << cli.ip_address << "|" << std::boolalpha << cli.blocking << "]";
 }
@@ -94,11 +94,14 @@ public:
 private:
 
 	void list_packets(std::string);
-	void list_clients(std::string);
 
 	std::map<std::string, std::function<void(std::string)>> commandline_function = {
+		
+		{"clear", [&](std::string args) {manip::clear_console(); }},
+
 		{"packets", [&](std::string args) {list_packets(args); }},
-		{"list", [&](std::string args){	
+
+		{"list", [&](std::string args) {
 			manip::argument_passer({
 
 				{"latest", [&] {
@@ -115,7 +118,40 @@ private:
 					}
 				}}
 
-			}, args); }}
+			}, args); }},
+
+		{"show", [&](std::string args) {
+			manip::argument_passer({
+
+				{"options", [&] {
+
+				}},
+
+				{"clients", [&] {
+					for (auto client : client_list) {
+						std::cout << client << std::endl;
+					}
+				}},
+
+				{"connections", [&] {
+					for (auto client : client_list) {
+						std::cout << client.ip_address << "|" << client.socket_id << std::endl;
+					}
+				}}
+
+			},args); }},
+
+			{"client", [&](std::string args) {
+					std::cout << "Search Term: " << args << std::endl;
+
+					if (is_digits(args)) {
+
+					}
+
+					auto index(search_vector(client_list, &client::socket_id, 2));
+					//Search with every query and find the result or filter result first and choose the correct query
+			}},
+
 	};
 
 	int accepting_port = 0;
@@ -267,7 +303,7 @@ private:
 	void authenticate(client);
 
 	template<typename T, typename V>// https://stackoverflow.com/a/55315987/4363773
-	typename std::vector<V>::iterator search_vector(std::vector<V> &list, T V::*member, T value) { 
+	typename std::vector<V>::iterator search_vector(std::vector<V>& list, T V::* member, T value) {
 		return std::find_if(list.begin(), list.end(), [value, member](V & c) {return c.*member == value; });
 	}
 

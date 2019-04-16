@@ -41,6 +41,8 @@ tcp_server::tcp_server(std::string name)
 {
 	console = pipe(name, false);
 
+	manip::enable_ansi();
+
 	if (console.listen()) {
 		console.run_pe(helper_exe);
 	}
@@ -91,11 +93,6 @@ void tcp_server::list_packets(std::string sock_string)
 			}
 		}
 	}
-}
-
-void tcp_server::list_clients(std::string args)
-{
-
 }
 
 void tcp_server::prompt(std::string function, std::string arguments)
