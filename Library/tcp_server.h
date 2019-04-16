@@ -101,30 +101,13 @@ private:
 
 		{"packets", [&](std::string args) {list_packets(args); }},
 
-		{"list", [&](std::string args) {
-			manip::argument_passer({
-
-				{"latest", [&] {
-					std::cout << client_list.back() << std::endl;
-				}},
-
-				{"oldest", [&] {
-					std::cout << client_list.front() << std::endl;
-				}},
-
-				{"all", [&] {
-					for (auto cli : client_list) {
-						std::cout << cli << std::endl;
-					}
-				}}
-
-			}, args); }},
-
 		{"show", [&](std::string args) {
 			manip::argument_passer({
 
 				{"options", [&] {
-
+					std::cout << "    Port:        " << accepting_port << std::endl << std::boolalpha
+							  << "    Verbosity:   " << output_verbosity << std::endl
+							  << "    Name Prefix: " << output_verbosity << std::endl;
 				}},
 
 				{"clients", [&] {
@@ -139,17 +122,30 @@ private:
 					}
 				}}
 
-			},args); }},
+			}, args); }},
 
 			{"client", [&](std::string args) {
-					std::cout << "Search Term: " << args << std::endl;
+
+					std::vector<client>::iterator search;
 
 					if (is_digits(args)) {
-
+						search = search_vector(client_list, &client::socket_id, std::stoi(args));
+					}
+					else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
+						search = search_vector(client_list, &client::ip_address, args);
+					}
+					else {
+						search = search_vector(client_list, &client::name, args);
 					}
 
-					auto index(search_vector(client_list, &client::socket_id, 2));
-					//Search with every query and find the result or filter result first and choose the correct query
+					std::cout <<
+						"\n    Name:      " << search->name << 
+						"\n    Socket ID: " << search->socket_id << 
+						"\n    Ip:        " << search->ip_address << 
+						"\n    Port:      " << accepting_port << 
+						"\n    Blocking:  " << std::boolalpha << search->blocking << 
+						"\n" << std::endl;
+
 			}},
 
 	};
