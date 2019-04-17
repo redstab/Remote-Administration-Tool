@@ -21,11 +21,9 @@ int main()
 		{
 			std::cout << "[+] Client has connected to the server\n";
 
-			std::string input;
-
-			while (std::getline(std::cin, input))
-			{
-				std::cout << "Send Returned : " << main.send(input, "TEXT") << std::endl;
+			while (true) {
+				Sleep(1000);
+				main.send(std::to_string(rand()), "RND");
 			}
 		}
 		else

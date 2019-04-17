@@ -167,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="..\Library\tcp_client.h" />
     <ClInclude Include="precompile.h" />
+    <ClInclude Include="winapi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -36,7 +36,6 @@ int main()
 						{
 							std::cout << "server $ ";
 							manip::command_line([&](std::string a, std::string b) {main.prompt(a, b); });
-							//main.list_packets(socket);
 						}
 					}
 

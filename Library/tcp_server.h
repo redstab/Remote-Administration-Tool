@@ -22,7 +22,7 @@ struct packet
 	std::string identifier_buffer;
 	std::string data_buffer;
 
-	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
+	long long id_size, data_size;
 
 	int error_code;
 
@@ -129,13 +129,13 @@ private:
 					std::vector<client>::iterator search;
 
 					if (is_digits(args)) {
-						search = search_vector(client_list, &client::socket_id, std::stoi(args));
+						search = search_vector(client_list, &client::socket_id, std::stoi(args)); // Search by Socket ID
 					}
 					else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
-						search = search_vector(client_list, &client::ip_address, args);
+						search = search_vector(client_list, &client::ip_address, args); // Search by IP
 					}
 					else {
-						search = search_vector(client_list, &client::name, args);
+						search = search_vector(client_list, &client::name, args); // Search by Name
 					}
 
 					std::cout <<
@@ -161,7 +161,7 @@ private:
 	std::string name_prefix = "";
 
 	std::vector<client> client_list;
-
+	
 	pipe console;
 
 	/// <summary>

@@ -41,8 +41,6 @@ bool tcp_client::connect()
 		if (is_digits(handshake.data_buffer)) {
 			int request = std::stoi(handshake.data_buffer);
 			int response = generate_solution(std::stoi(handshake.data_buffer));
-			//std::cout << "Handshake Request (" << request << ")" << std::endl;
-			//std::cout << "Handshake Response (" << response << ")" << std::endl;
 			if (tcp_client::send(std::to_string(response), "Response")) {
 				auto result(tcp_client::recv(connection_socket));
 				if (is_digits(result.data_buffer)) {
@@ -164,7 +162,7 @@ packet tcp_client::recv(int sock)
 
 	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
 
-	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
+	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received header without error
 	{
 		const std::string header_string(header_buffer);
 
@@ -287,10 +285,6 @@ int tcp_client::generate_solution(int input)
 	int singularity = ((input % 2 == 0) ? input : input / 2);
 	return abs(((input ^ (input / 2) ^ (input * singularity * input)) % (input * input)) * singularity);
 }
-
-
-
-//WSA_ERROR
 
 WSA_ERROR::WSA_ERROR(int error_code, std::string error_msg)
 {
