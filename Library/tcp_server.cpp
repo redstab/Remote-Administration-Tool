@@ -218,10 +218,15 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 		break;
 	case 10054: { // Client Dropped Connection
 		auto disconnected_client(search_vector(client_list, &client::socket_id, int(socket)));
-		console << "[-] Disconnected [" << disconnected_client->name << "]\n";
-		client_list.erase(disconnected_client);
-		FD_CLR(disconnected_client->socket_id, &client_set);
-		closesocket(disconnected_client->socket_id);
+		if (disconnected_client != client_list.end()) {
+			console << "[-] Disconnected [" << disconnected_client->name << "]\n";
+			client_list.erase(disconnected_client);
+			FD_CLR(disconnected_client->socket_id, &client_set);
+			closesocket(disconnected_client->socket_id);
+		}else{
+			FD_CLR(socket, &client_set);
+			closesocket(socket);
+		}
 		break;
 	}
 	default:
@@ -342,7 +347,7 @@ std::tuple<int, int> tcp_server::format_input(std::string victim)
 
 bool tcp_server::is_digits(std::string victim) const
 {
-	return std::all_of(victim.begin(), victim.end(), ::isdigit);
+	return std::all_of(victim.begin(), victim.end(), ::isdigit) && !victim.empty();
 }
 
 template <typename ... Arguments>

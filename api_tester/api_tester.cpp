@@ -36,12 +36,13 @@ int main()
 
 	winapi::computer::info::print_query(hps::from_string<std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>>>(serialized));
 
-	system("cls");
+	//system("cls");
 
 	auto all = winapi::computer::info::allof_wmi();
 
-	for (auto query : all) {
-		winapi::computer::info::print_query(query);
-	}
+	std::cout << hps::to_string(all).size() << std::endl;
+
+	//Need to fix serilazation bcs it uses non unicode chars which i cannot mabe not send over tcp reliably therfore need to possibly convert to char int array and serilize that and send and create the string and then unserilize on serverside after converting char array to string using own serialzation
+
 
 }

@@ -210,9 +210,9 @@ namespace winapi {
 				std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>>> resultant;
 
 				for (auto query : all_queries) {
-					std::cout << "[~] " << query;
+					//std::cout << "[~] " << query;
 					resultant.push_back(query_wmi(query));
-					std::cout << " [+]" << std::endl;
+					//std::cout << " [+]" << std::endl;
 				}
 
 				return resultant;
