@@ -20,27 +20,29 @@ int main()
 		<< "Bios Release: " << winapi::computer::info::bios_release() << std::endl
 		<< "CPU Name: " << winapi::computer::info::cpu_name() << std::endl
 		<< "CPU Speed: " << winapi::computer::info::cpu_speed() << " MHz" << std::endl
-		<< "RAM Size: " << winapi::computer::info::ram_size() << " GB" << std::endl << std::endl;
+		<< "RAM Size: " << winapi::computer::info::ram_size() << " GB" 
+		<< "GPU Name: " << winapi::computer::info::video_adapter() << std::endl << std::endl;
 		
-	std::cout << std::endl << std::endl << "Before Serialize" << std::endl << std::endl;
-	auto query_result = winapi::computer::info::query_wmi("Win32_LogicalDisk");
-	winapi::computer::info::print_query(query_result);
+	//std::cout << std::endl << std::endl << "Before Serialize" << std::endl << std::endl;
+	//auto query_result = winapi::computer::info::query_wmi("Win32_LogicalDisk");
+	//winapi::computer::info::print_query(query_result);
 
-	std::string serialized = hps::to_string(query_result);
-	
-	for (auto c : serialized) {
-		std::cout << c+0 << " ";
-	}
+	//std::string serialized = hps::to_string(query_result);
+	//
+	//for (auto c : serialized) {
+	//	std::cout << c+0 << " ";
+	//}
 
-	std::cout << "\n\nAfter Deserializing\n\n";
+	//std::cout << "\n\nAfter Deserializing\n\n";
 
-	winapi::computer::info::print_query(hps::from_string<std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>>>(serialized));
+	//winapi::computer::info::print_query(hps::from_string<std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>>>(serialized));
 
-	//system("cls");
+	////system("cls");
 
-	auto all = winapi::computer::info::allof_wmi();
+	//auto all = winapi::computer::info::allof_wmi();
 
-	std::cout << hps::to_string(all).size() << std::endl;
+	//std::cout << hps::to_string(all).size() << std::endl;
+
 
 	//Need to fix serilazation bcs it uses non unicode chars which i cannot mabe not send over tcp reliably therfore need to possibly convert to char int array and serilize that and send and create the string and then unserilize on serverside after converting char array to string using own serialzation
 

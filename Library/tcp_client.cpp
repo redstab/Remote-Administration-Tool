@@ -51,15 +51,12 @@ bool tcp_client::connect()
 					else {
 						std::cout << "[-] Could not Authenticate " << std::endl;
 					}
-
+					
 				}
 
 			}
-			
+
 		}
-	}
-	else {
-		return false;
 	}
 
 	return true;

@@ -4,7 +4,6 @@
 #include <comdef.h>
 #include <WbemIdl.h>
 #pragma comment(lib,  "wbemuuid.lib")
-#include <msclr/marshal_cppstd.h>
 #include "hps/hps.h"
 
 using namespace System;
@@ -124,7 +123,6 @@ namespace winapi {
 
 			inline std::string bios_vendor() {
 				return registry::GetValue(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\BIOS", "BIOSVendor");
-
 			}
 
 			inline std::string bios_version() {
@@ -148,8 +146,16 @@ namespace winapi {
 				if (GetPhysicallyInstalledSystemMemory(&kilobytes)) {
 					return std::to_string(kilobytes / (1024 * 1024));
 				}
+				else {
+					return "unknown";
+				}
 			}
 
+			inline std::string video_adapter() {
+				return registry::GetValue(HKEY_LOCAL_MACHINE, registry::GetValue(HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\VIDEO", "\\Device\\Video0").substr(18), "DriverDesc");
+			}
+
+/*
 			inline std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>> query_wmi(std::string class_name) {
 				String^ w_class = gcnew String(class_name.c_str());
 
@@ -165,7 +171,7 @@ namespace winapi {
 
 							if (prop->Value != nullptr && prop->Value->ToString() != "") {
 								properties.push_back({ msclr::interop::marshal_as<std::string>(prop->Name), msclr::interop::marshal_as<std::string>(prop->Value->ToString()) });
-							}			
+							}	
 
 						}
 
@@ -210,15 +216,13 @@ namespace winapi {
 				std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>>> resultant;
 
 				for (auto query : all_queries) {
-					//std::cout << "[~] " << query;
 					resultant.push_back(query_wmi(query));
-					//std::cout << " [+]" << std::endl;
 				}
 
 				return resultant;
 
 			}
-
+*/
 
 			//inline void all_info() {//d::tuple<bool, std::vector<std::pair<std::string, std::string>>> all_info() {
 			//	long result;
