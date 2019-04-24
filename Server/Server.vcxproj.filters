@@ -27,6 +27,9 @@
     <ClInclude Include="..\Library\pipe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pod_holder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -36,7 +39,10 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Library\pipe.cpp">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="client_actions.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

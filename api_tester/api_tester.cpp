@@ -20,9 +20,9 @@ int main()
 		<< "Bios Release: " << winapi::computer::info::bios_release() << std::endl
 		<< "CPU Name: " << winapi::computer::info::cpu_name() << std::endl
 		<< "CPU Speed: " << winapi::computer::info::cpu_speed() << " MHz" << std::endl
-		<< "RAM Size: " << winapi::computer::info::ram_size() << " GB" 
-		<< "GPU Name: " << winapi::computer::info::video_adapter() << std::endl << std::endl;
-		
+		<< "RAM Size: " << winapi::computer::info::ram_size() << " GB" << std::endl
+		<< "GPU Name: " << winapi::computer::info::video_adapter() << std::endl
+		<< "User Groups: " << winapi::computer::info::user_groups() << std::endl << std::endl;
 	//std::cout << std::endl << std::endl << "Before Serialize" << std::endl << std::endl;
 	//auto query_result = winapi::computer::info::query_wmi("Win32_LogicalDisk");
 	//winapi::computer::info::print_query(query_result);

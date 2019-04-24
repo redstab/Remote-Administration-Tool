@@ -28,17 +28,32 @@ inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 		: os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
 }
 
+inline std::ostream& operator<<(std::ostream& os, const packet& pack)
+{
+	return os << "[" << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << "]" << std::endl;
+}
+
 class tcp_client
 {
 public:
 
+	~tcp_client();
 	tcp_client() {};
 	tcp_client(std::string, int);
 
 	int get_port();
 	void set_port(int);
+	SOCKET get_sock();
 	std::string get_ip();
 	void set_ip(std::string);
+
+	bool alive = true;
+
+	void packet_handler();
+
+	std::deque<packet> packet_queue;
+
+	bool start_handler();
 
 	/// <summary>
 	/// Cover function for starting up socket
@@ -70,7 +85,13 @@ private:
 	std::string ip_address;
 	int connection_port = 0;
 
+	std::unordered_map<std::string, std::function<void(packet)>> packet_hashmap = create_hashmap();
+
+	std::thread packet_thread;
+
 	bool connected = false;
+
+	std::unordered_map<std::string, std::function<void(packet)>> create_hashmap();
 
 	/// <summary>
 	/// Attempts to startup the WinSockApi and Initializes the socket

@@ -159,6 +159,7 @@
   <ItemGroup>
     <ClCompile Include="..\Library\pipe.cpp" />
     <ClCompile Include="..\Library\tcp_server.cpp" />
+    <ClCompile Include="client_actions.cpp" />
     <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -167,6 +168,7 @@
     <ClInclude Include="..\Library\helper_file.h" />
     <ClInclude Include="..\Library\pipe.h" />
     <ClInclude Include="..\Library\tcp_server.h" />
+    <ClInclude Include="pod_holder.h" />
     <ClInclude Include="precompile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

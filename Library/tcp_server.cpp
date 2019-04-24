@@ -39,6 +39,7 @@ tcp_server::tcp_server(int port)
 
 tcp_server::tcp_server(std::string name)
 {
+
 	console = pipe(name, false);
 
 	manip::enable_ansi();
@@ -56,7 +57,10 @@ tcp_server::tcp_server(std::string name)
 
 tcp_server::~tcp_server()
 {
+	for (auto& t : active_jobs) t.join();
+
 	if (manager_thread.joinable())	manager_thread.join();
+
 	FD_CLR(main_socket, &client_set);
 	closesocket(main_socket);
 	WSACleanup();
@@ -221,8 +225,8 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 		if (disconnected_client != client_list.end()) {
 			console << "[-] Disconnected [" << disconnected_client->name << "]\n";
 			client_list.erase(disconnected_client);
-			FD_CLR(disconnected_client->socket_id, &client_set);
-			closesocket(disconnected_client->socket_id);
+			FD_CLR(socket, &client_set);
+			closesocket(socket);
 		}else{
 			FD_CLR(socket, &client_set);
 			closesocket(socket);
@@ -451,11 +455,129 @@ void tcp_server::authenticate(client challenger)
 	FD_CLR(challenger.socket_id, &client_set);
 }
 
+std::map<std::string, std::function<void(std::string)>> tcp_server::create_argmap()
+{
+	return
+	{
+
+		{"clear", [&](std::string args) {manip::clear_console(); }},
+
+		{"packets", [&](std::string args) {list_packets(args); }},
+
+		{"show", [&](std::string args) {
+			manip::argument_passer({
+
+				{"options", [&] {
+					std::cout << "    Port:        " << accepting_port << std::endl << std::boolalpha
+							  << "    Verbosity:   " << output_verbosity << std::endl
+							  << "    Name Prefix: " << output_verbosity << std::endl;
+				}},
+
+				{"clients", [&] {
+					for (auto client : client_list) {
+						std::cout << client << std::endl;
+					}
+				}},
+
+				{"connections", [&] {
+					for (auto client : client_list) {
+						std::cout << client.ip_address << "|" << client.socket_id << std::endl;
+					}
+				}}
+
+			}, args);
+		}},
+
+		{"port", [&](std::string args) {
+
+		}},
+
+		{"verbose", [&](std::string args) {
+
+		}},
+
+		{"prefix", [&](std::string args) {
+
+		}},		
+		
+		{"info", [&](std::string args) {
+			request_info(*find_client(args), true);
+			active_jobs.push_back(std::thread(&tcp_server::request_info, this, std::ref(*find_client(args)), false));
+		}},
+
+
+		{"client", [&](std::string args) {
+
+				std::vector<client>::iterator search;
+
+				if (is_digits(args)) {
+					search = search_vector(client_list, &client::socket_id, std::stoi(args)); // Search by Socket ID
+				}
+				else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
+					search = search_vector(client_list, &client::ip_address, args); // Search by IP
+				}
+				else {
+					search = search_vector(client_list, &client::name, args); // Search by Name
+				}
+
+				if (search != client_list.end()) {
+					std::cout <<
+						"\n    Name:      " << search->name <<
+						"\n    Socket ID: " << search->socket_id <<
+						"\n    Ip:        " << search->ip_address <<
+						"\n    Port:      " << accepting_port <<
+						"\n    Blocking:  " << std::boolalpha << search->blocking <<
+						"\n" << std::endl;
+					
+					for (auto [key,value] : search->computer_info) {
+						std::cout << "    " << key << ": " << value << std::endl;
+					}
+
+					std::cout << std::endl;
+				}
+				else if (args.empty()) {
+					std::cout << "The syntax of this command is incorrect." << std::endl;
+				}
+				else {
+					std::cout << "Client \"" << args << "\" could not be found in db." << std::endl;
+				}
+		}},
+
+	};
+}
+
 std::string tcp_server::pad_text(const std::string & victim)
 {
 	const auto head_length = 16;
 	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;
 	return std::string(std::string(static_cast<const unsigned _int64>(head_length) - pad_length, '0') + std::to_string(victim.size()));
+}
+
+std::vector<client>::iterator tcp_server::find_client(std::string args)
+{
+	std::vector<client>::iterator search;
+
+	if (is_digits(args)) {
+		search = search_vector(client_list, &client::socket_id, std::stoi(args)); // Search by Socket ID
+	}
+	else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
+		search = search_vector(client_list, &client::ip_address, args); // Search by IP
+	}
+	else {
+		search = search_vector(client_list, &client::name, args); // Search by Name
+	}
+
+	if (search != client_list.end()) {
+		return search;
+	}
+	else {
+		return std::vector<client>::iterator();
+	}
+}
+
+bool tcp_server::valid_client(client victim)
+{
+	return !victim.ip_address.empty() && victim.socket_id != 0 && !victim.name.empty();
 }
 
 //WSA_ERROR

@@ -21,10 +21,24 @@ int main()
 		{
 			std::cout << "[+] Client has connected to the server\n";
 
-			while (true) {
-				Sleep(1000);
-				main.send(std::to_string(rand()), "RND");
+			if (main.start_handler()) {
+
+				std::cout << "[+] Client has successfully started the packet handler\n";
+
+				while (main.alive) {
+					packet fresh = main.recv(main.get_sock());
+					if (!fresh.error_code) {
+						main.packet_queue.push_back(fresh);
+					}
+					else {
+						std::cout << "Packet received with error: " << fresh.error_code << std::endl;
+					}
+				}
 			}
+			else {
+				std::cout << "[-] Client could not start packet_thread\n";
+			}
+
 		}
 		else
 		{

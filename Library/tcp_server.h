@@ -1,52 +1,7 @@
 #pragma once
 #include "..\Library\precompile.h"
 #include "..\Library\pipe.h"
-
-enum error_codes {
-	not_readable = -1,
-	success = 0,
-	// TODO ...
-};
-
-struct WSA_ERROR
-{
-	WSA_ERROR(int, std::string);
-	WSA_ERROR(int);
-	int code;
-	std::string msg;
-};
-
-struct packet
-{
-
-	std::string identifier_buffer;
-	std::string data_buffer;
-
-	long long id_size, data_size;
-
-	int error_code;
-
-};
-
-struct client {
-	client(std::string ip, int id, std::string nm) {
-		ip_address = ip;
-		socket_id = id;
-		name = nm;
-	}
-
-	void set_block(bool value) {
-		blocking = value;
-	}
-
-	std::string ip_address;
-	std::string name;
-	int socket_id = 0;
-	std::deque<packet> packet_queue;
-	bool blocking = false;
-	void push_packet(packet input);
-};
-
+#include "..\Server\pod_holder.h"
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 {
 	return (error.code == 0 && error.msg.empty())
@@ -95,73 +50,21 @@ private:
 
 	void list_packets(std::string);
 
-	std::map<std::string, std::function<void(std::string)>> commandline_function = {
-		
-		{"clear", [&](std::string args) {manip::clear_console(); }},
-
-		{"packets", [&](std::string args) {list_packets(args); }},
-
-		{"show", [&](std::string args) {
-			manip::argument_passer({
-
-				{"options", [&] {
-					std::cout << "    Port:        " << accepting_port << std::endl << std::boolalpha
-							  << "    Verbosity:   " << output_verbosity << std::endl
-							  << "    Name Prefix: " << output_verbosity << std::endl;
-				}},
-
-				{"clients", [&] {
-					for (auto client : client_list) {
-						std::cout << client << std::endl;
-					}
-				}},
-
-				{"connections", [&] {
-					for (auto client : client_list) {
-						std::cout << client.ip_address << "|" << client.socket_id << std::endl;
-					}
-				}}
-
-			}, args); }},
-
-			{"client", [&](std::string args) {
-
-					std::vector<client>::iterator search;
-
-					if (is_digits(args)) {
-						search = search_vector(client_list, &client::socket_id, std::stoi(args)); // Search by Socket ID
-					}
-					else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
-						search = search_vector(client_list, &client::ip_address, args); // Search by IP
-					}
-					else {
-						search = search_vector(client_list, &client::name, args); // Search by Name
-					}
-
-					std::cout <<
-						"\n    Name:      " << search->name << 
-						"\n    Socket ID: " << search->socket_id << 
-						"\n    Ip:        " << search->ip_address << 
-						"\n    Port:      " << accepting_port << 
-						"\n    Blocking:  " << std::boolalpha << search->blocking << 
-						"\n" << std::endl;
-
-			}},
-
-	};
+	std::map<std::string, std::function<void(std::string)>> commandline_function = create_argmap();
 
 	int accepting_port = 0;
 	bool output_verbosity = true;
+	std::string name_prefix = "";
 
 	WSADATA socket_data{};
 	fd_set client_set{};
 	SOCKET main_socket{};
 	std::thread manager_thread;
 
-	std::string name_prefix = "";
-
 	std::vector<client> client_list;
-	
+
+	std::vector<std::thread> active_jobs;
+
 	pipe console;
 
 	/// <summary>
@@ -234,7 +137,7 @@ private:
 	std::tuple<int, int> format_input(std::string);
 
 	/// <summary>
-	/// Checks if string is consisting of only digits and not of letters
+	/// Checks if string is consisting of only digits and not of letters and if the string is not empty
 	/// </summary>
 	/// <param name="victim">The string that will get tested</param>
 	/// <returns>If the string is only numbers or not (Bool)</returns>
@@ -296,12 +199,30 @@ private:
 	/// <returns>A tuple of the random password and its solution</returns>
 	std::tuple<int, int> generate_password(int, int);
 
+	/// <summary>
+	/// Tries to authenticate a socket using a hardcoded operation sequence, 
+	/// Adds to client_list if successful authentication, else disconnects
+	/// </summary>
+	/// <param name="challenger">The client that will be tested</param>
 	void authenticate(client);
 
+	/// <summary>
+	/// A general function to search a vector for a structure with a specift property value
+	/// </summary>
+	/// <param name="list">The vector to be searched</param>
+	/// <param name="member">The pointer to the property (memeber, &client::socket_id)</param>
+	/// <param name="value">The value that will be searched after in the property</param>
+	/// <returns>The vector iterator of the item if it succeded to find the structure or the vector iterator of list.end() if failed to find structure</returns>
 	template<typename T, typename V>// https://stackoverflow.com/a/55315987/4363773
 	typename std::vector<V>::iterator search_vector(std::vector<V>& list, T V::* member, T value) {
 		return std::find_if(list.begin(), list.end(), [value, member](V & c) {return c.*member == value; });
 	}
+
+	/// <summary>
+	/// Cover function to house the argument map of commandline_function
+	/// </summary>
+	/// <returns>The hardcoded argument map</returns>
+	std::map<std::string, std::function<void(std::string)>> create_argmap();
 
 	/// <summary>
 	/// Pads inputed string's size to a fixed 16 char string "hello" -> len("hello") = 5 -> 00000005
@@ -309,4 +230,12 @@ private:
 	/// <param name="victim">The string that will get padded</param>
 	/// <returns>Padded string</returns>
 	std::string pad_text(const std::string& victim);
+
+	std::vector<client>::iterator find_client(std::string);
+
+	bool valid_client(client);
+
+	// Client Manipulative Functions
+
+	bool request_info(client&, bool);
 };

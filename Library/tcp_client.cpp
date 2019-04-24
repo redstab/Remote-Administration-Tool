@@ -1,6 +1,13 @@
 #include "precompile.h"
 #include "tcp_client.h"
 
+tcp_client::~tcp_client()
+{
+	if (packet_thread.joinable())	packet_thread.join();
+	closesocket(connection_socket);
+	WSACleanup();
+}
+
 tcp_client::tcp_client(std::string connection_ip, int connection_port)
 {
 	set_port(connection_port);
@@ -17,6 +24,11 @@ void tcp_client::set_port(int new_port)
 	connection_port = new_port;
 }
 
+SOCKET tcp_client::get_sock()
+{
+	return connection_socket;
+}
+
 std::string tcp_client::get_ip()
 {
 	return ip_address;
@@ -25,6 +37,51 @@ std::string tcp_client::get_ip()
 void tcp_client::set_ip(std::string new_ip)
 {
 	ip_address = new_ip;
+}
+
+std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_hashmap()
+{
+	return { 
+	
+		{"Info Request",[&](packet fresh) {std::cout << "Info Request packet: " << fresh << std::endl; }} 
+	
+	};
+}
+
+void tcp_client::packet_handler()
+{
+	while (alive) {
+
+		// Check if we have packets to process
+		if (!packet_queue.empty()) {
+
+			// Get first packet
+			packet fresh = packet_queue.front();
+
+			// Only Parse non-error packet
+			if (!fresh.error_code) {
+
+				// Only if it exists in hashmap
+				if (packet_hashmap.count(fresh.identifier_buffer) != 0) {
+
+					// Execute function coresponding to identifier
+					packet_hashmap[fresh.identifier_buffer](fresh);
+
+				}
+
+			}
+
+			// Pop the packet because we have processed it
+			packet_queue.pop_front();
+		}
+
+	}
+}
+
+bool tcp_client::start_handler()
+{
+	packet_thread = std::thread(&tcp_client::packet_handler, this);
+	return packet_thread.joinable();
 }
 
 bool tcp_client::startup()
@@ -40,7 +97,7 @@ bool tcp_client::connect()
 
 		if (is_digits(handshake.data_buffer)) {
 			int request = std::stoi(handshake.data_buffer);
-			int response = generate_solution(std::stoi(handshake.data_buffer));
+			int response = generate_solution(request);
 			if (tcp_client::send(std::to_string(response), "Response")) {
 				auto result(tcp_client::recv(connection_socket));
 				if (is_digits(result.data_buffer)) {
@@ -50,8 +107,9 @@ bool tcp_client::connect()
 					}
 					else {
 						std::cout << "[-] Could not Authenticate " << std::endl;
+						return false;
 					}
-					
+
 				}
 
 			}
@@ -152,7 +210,6 @@ std::string tcp_client::pad_text(const std::string& victim)
 packet tcp_client::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
-
 	const auto header_length = 32;
 	const auto recv_size = 65536;
 	char header_buffer[header_length + 1]{};
@@ -163,7 +220,7 @@ packet tcp_client::recv(int sock)
 	{
 		const std::string header_string(header_buffer);
 
-		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
+		if (is_digits(header_string)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
 
 			auto [identifier_size, data_size] = format_input(header_string); // Formats size string to ints 0000000000001600000000000032 -> 16, 32
