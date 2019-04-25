@@ -43,7 +43,10 @@ std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_
 {
 	return { 
 	
-		{"Info Request",[&](packet fresh) {std::cout << "Info Request packet: " << fresh << std::endl; }} 
+		{"Info Request",[&](packet fresh) {
+			std::cout << "Info Request of: " << fresh.data_buffer << "\n";
+			tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
+		}} 
 	
 	};
 }

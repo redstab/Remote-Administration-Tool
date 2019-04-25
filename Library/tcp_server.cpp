@@ -57,7 +57,7 @@ tcp_server::tcp_server(std::string name)
 
 tcp_server::~tcp_server()
 {
-	for (auto& t : active_jobs) t.join();
+	for (auto& t : active_jobs) t.second.join();
 
 	if (manager_thread.joinable())	manager_thread.join();
 
@@ -105,7 +105,7 @@ void tcp_server::prompt(std::string function, std::string arguments)
 		commandline_function[function](arguments);
 	}
 	else {
-		std::cout << "'"<< function << "' is not a recognized command." << std::endl;
+		std::cout << "'" << function << "' is not a recognized command." << std::endl;
 	}
 }
 
@@ -221,13 +221,25 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 	case 0: // No Error
 		break;
 	case 10054: { // Client Dropped Connection
-		auto disconnected_client(search_vector(client_list, &client::socket_id, int(socket)));
+		auto disconnected_client = find_client(std::to_string(socket));
 		if (disconnected_client != client_list.end()) {
 			console << "[-] Disconnected [" << disconnected_client->name << "]\n";
-			client_list.erase(disconnected_client);
+			
+			// Remove and disconnects client
+			
+			client_list.erase(std::remove(client_list.begin(), client_list.end(), *disconnected_client), client_list.end());
 			FD_CLR(socket, &client_set);
 			closesocket(socket);
-		}else{
+
+			// Finish the jobs for the client
+
+			for (auto& pair : active_jobs) {
+				if (pair.first == socket) {
+					pair.second.join();
+				}
+			}
+		}
+		else {
 			FD_CLR(socket, &client_set);
 			closesocket(socket);
 		}
@@ -498,27 +510,28 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 
 		{"prefix", [&](std::string args) {
 
-		}},		
-		
-		{"info", [&](std::string args) {
-			request_info(*find_client(args), true);
-			active_jobs.push_back(std::thread(&tcp_server::request_info, this, std::ref(*find_client(args)), false));
 		}},
 
+		{"info", [&](std::string args) {
+
+			auto search = find_client(args);
+
+			if (search != client_list.end()) {
+				request_info(*search, true);
+				active_jobs.push_back({ search->socket_id, std::thread(&tcp_server::request_info, this, std::ref(*search), false) });
+			}
+			else if (args.empty()) {
+				std::cout << "The syntax of this command is incorrect." << std::endl;
+			}
+			else {
+				std::cout << "Client \"" << args << "\" could not be found in db." << std::endl;
+			}
+
+		}},
 
 		{"client", [&](std::string args) {
 
-				std::vector<client>::iterator search;
-
-				if (is_digits(args)) {
-					search = search_vector(client_list, &client::socket_id, std::stoi(args)); // Search by Socket ID
-				}
-				else if (std::all_of(args.begin(), args.end(), [](char c) {return std::isdigit(c) || c == '.'; })) {
-					search = search_vector(client_list, &client::ip_address, args); // Search by IP
-				}
-				else {
-					search = search_vector(client_list, &client::name, args); // Search by Name
-				}
+				auto search = find_client(args);
 
 				if (search != client_list.end()) {
 					std::cout <<
@@ -528,7 +541,7 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 						"\n    Port:      " << accepting_port <<
 						"\n    Blocking:  " << std::boolalpha << search->blocking <<
 						"\n" << std::endl;
-					
+
 					for (auto [key,value] : search->computer_info) {
 						std::cout << "    " << key << ": " << value << std::endl;
 					}
@@ -567,12 +580,12 @@ std::vector<client>::iterator tcp_server::find_client(std::string args)
 		search = search_vector(client_list, &client::name, args); // Search by Name
 	}
 
-	if (search != client_list.end()) {
-		return search;
-	}
-	else {
-		return std::vector<client>::iterator();
-	}
+	return search;
+}
+
+bool tcp_server::is_connected(client c)
+{
+	return consists(client_list, c);
 }
 
 bool tcp_server::valid_client(client victim)

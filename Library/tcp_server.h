@@ -63,7 +63,8 @@ private:
 
 	std::vector<client> client_list;
 
-	std::vector<std::thread> active_jobs;
+	std::vector<std::pair<int, std::thread>> active_jobs; // use soimething like this to stop threads and make them work together https://en.cppreference.com/w/cpp/thread/condition_variable
+	// I shjould create a thread wrapper class with the request and fetch thingy, and make a condition_variable to control execution and when to stop
 
 	pipe console;
 
@@ -213,8 +214,8 @@ private:
 	/// <param name="member">The pointer to the property (memeber, &client::socket_id)</param>
 	/// <param name="value">The value that will be searched after in the property</param>
 	/// <returns>The vector iterator of the item if it succeded to find the structure or the vector iterator of list.end() if failed to find structure</returns>
-	template<typename T, typename V>// https://stackoverflow.com/a/55315987/4363773
-	typename std::vector<V>::iterator search_vector(std::vector<V>& list, T V::* member, T value) {
+	template<typename T, typename V, typename C>// https://stackoverflow.com/a/55315987/4363773
+	typename C::iterator search_vector(C& list, T V::* member, T value) {
 		return std::find_if(list.begin(), list.end(), [value, member](V & c) {return c.*member == value; });
 	}
 
@@ -232,6 +233,13 @@ private:
 	std::string pad_text(const std::string& victim);
 
 	std::vector<client>::iterator find_client(std::string);
+
+	template<typename Container, typename Item>
+	typename bool consists(Container& list, Item item) {
+		return std::find(list.begin(), list.end(), item) != list.end();
+	}
+
+	bool is_connected(client c);
 
 	bool valid_client(client);
 

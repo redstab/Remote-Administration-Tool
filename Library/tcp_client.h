@@ -1,6 +1,6 @@
 #pragma once
 #include "..\Library\precompile.h"
-
+#include "..\Client\winapi.h"
 struct WSA_ERROR
 {
 	WSA_ERROR(int, std::string);
@@ -18,7 +18,24 @@ struct packet
 	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
 
 	int error_code;
+};
 
+inline std::unordered_map<std::string, std::function<std::string()>> computer_info = {
+	{"Windows Product", winapi::computer::info::windows_product},
+	{"Windows Owner", winapi::computer::info::windows_owner},
+	{"Windows Organization",winapi::computer::info::windows_organization},
+	{"Windows Architecture", winapi::computer::info::windows_architecture},
+	{"Windows Username", winapi::computer::info::windows_user},
+	{"Computer Name", winapi::computer::info::computer_name},
+	{"Motherboard Vendor", winapi::computer::info::mobo_vendor},
+	{"Motherboard Name", winapi::computer::info::mobo_product},
+	{"BIOS Vendor", winapi::computer::info::bios_vendor},
+	{"BIOS Version", winapi::computer::info::bios_version},
+	{"BIOS Date", winapi::computer::info::bios_release},
+	{"Processor Name", winapi::computer::info::cpu_name},
+	{"Processor Speed", winapi::computer::info::cpu_speed},
+	{"RAM Size", winapi::computer::info::ram_size},
+	{"GPU Name", winapi::computer::info::video_adapter}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)

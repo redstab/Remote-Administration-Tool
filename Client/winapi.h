@@ -6,7 +6,6 @@
 #pragma comment(lib,  "wbemuuid.lib")
 #pragma comment(lib,  "shell32.lib")
 //#pragma comment(lib,  "Netapi32.lib")
-#include "hps/hps.h"
 #include <Shlobj.h>
 #include <numeric>
 #include <LM.h>
