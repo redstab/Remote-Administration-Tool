@@ -1,5 +1,6 @@
 #include "..\Library\precompile.h"
 #include "pipe.h"
+#include "imagehlp.h"
 pipe::pipe(std::string name, bool verb)
 {
 	verbose = verb;
@@ -50,9 +51,10 @@ bool pipe::send_data(std::string msg)
 	return write && msg.size() == read_bytes;
 }
 
-void pipe::run_pe(void* Image)
+void pipe::run_pe(void* Image) // MAKE THIS RELIABLE PLS 
 {
 	manip::toogle_output(std::cout,verbose);
+	
 	auto error = [=](int error) {
 		char msg_buf[256]{ '\0' };
 
@@ -70,7 +72,7 @@ void pipe::run_pe(void* Image)
 
 		);
 
-		return std::string(msg_buf);
+		return std::string(std::to_string(error) + " | " + std::string(msg_buf));
 	};
 
 	std::cout << "[run_pe] Initializing" << std::endl;
@@ -108,6 +110,7 @@ void pipe::run_pe(void* Image)
 		bool threadcreated = CreateProcessA(CurrentFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED | CREATE_NEW_CONSOLE, NULL, NULL, &SI, &PI);
 		if (threadcreated == true)
 		{
+			//manip::toogle_output(std::cout, true);
 			hexout << "[run_pe] Created Suspended Process" << std::endl;
 			CTX = LPCONTEXT(VirtualAlloc(NULL, sizeof(CTX), MEM_COMMIT, PAGE_READWRITE));
 			CTX->ContextFlags = CONTEXT_FULL;
@@ -117,13 +120,6 @@ void pipe::run_pe(void* Image)
 				hexout << "[run_pe] Got Thread context (state) - " << std::hex << CTX->ContextFlags << std::endl;
 				ReadProcessMemory(PI.hProcess, LPCVOID(CTX->Ebx + 8), LPVOID(&ImageBase), 4, 0);
 				hexout << "[run_pe] ImageBase - " << std::hex << ImageBase << std::endl;
-
-				if (!DiscardVirtualMemory(LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage)) {
-					std::cout << "[run_pe] DiscardVirtualMemory - (" << GetLastError() << ")[" << error(GetLastError()) << "]" << std::endl;
-				}
-				else {
-					hexout << "[run_pe] Discarded virtual memory from [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
-				}
 
 				MEMORY_BASIC_INFORMATION mem{};
 				std::cout << "[run_pe] VirtualQueryEx - " << VirtualQueryEx(PI.hProcess, LPVOID(NtHeader->OptionalHeader.ImageBase), &mem, NtHeader->OptionalHeader.SizeOfImage) << std::endl;
@@ -136,12 +132,31 @@ void pipe::run_pe(void* Image)
 					<< "[run_pe] Page Type: " << std::hex << mem.Type << std::endl;
 
 				pImageBase = VirtualAllocEx(PI.hProcess, LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+				//pImageBase = VirtualAllocEx(PI.hProcess, LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 				hexout << "[run_pe] Allocates memory from [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
 				
-				if (pImageBase == 00000000) { // if allocation failed, means that image is already loaded
-					std::cout << "[run_pe] Memory is already Committed and Written to so resuming thread" << std::endl;
+				if (pImageBase == 00000000) { // if allocation failed, means that image is already loaded or cannot be
+					std::cout << error(GetLastError()) << std::endl;
+
+					if (!DiscardVirtualMemory(LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage)) {
+						std::cout << "[run_pe] DiscardVirtualMemory - (" << GetLastError() << ")[" << error(GetLastError()) << "]" << std::endl;
+					}
+					else {
+						std::cout << "[run_pe] Discarded virtual memory from [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
+					}
+
+					unsigned long old_size = NtHeader->OptionalHeader.SizeOfImage;
+					unsigned long old_base = NtHeader->OptionalHeader.ImageBase;
+					unsigned long new_size = 0;
+					unsigned long new_base = 0;
+
+
+					std::cout << "ReBase: " << ReBaseImage(nullptr, nullptr, true, true, true, 0, &old_size, &old_base, &new_size, &new_base, 0) << std::endl << error(GetLastError()) << std::endl;
+					
+					std::cout << "Old Size: " << old_size << std::endl << "Old Base: " << old_base << std::endl << "New Size:" << new_size << std::endl << "New Base: " << new_base << std::endl;
+					
 					ResumeThread(PI.hThread);
-					Sleep(1000);
+					Sleep(30000);
 					exit(-23);
 				}
 				else

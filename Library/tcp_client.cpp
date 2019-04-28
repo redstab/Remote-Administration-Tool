@@ -44,7 +44,7 @@ std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_
 	return { 
 	
 		{"Info Request",[&](packet fresh) {
-			std::cout << "Info Request of: " << fresh.data_buffer << "\n";
+			//std::cout << "Info Request of: " << fresh.data_buffer << "\n";
 			tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
 		}} 
 	
@@ -59,13 +59,17 @@ void tcp_client::packet_handler()
 		if (!packet_queue.empty()) {
 
 			// Get first packet
-			packet fresh = packet_queue.front();
+			packet fresh = packet_queue.at(0);
 
 			// Only Parse non-error packet
 			if (!fresh.error_code) {
 
 				// Only if it exists in hashmap
 				if (packet_hashmap.count(fresh.identifier_buffer) != 0) {
+					
+					// Log Packet
+
+					std::cout << "<- " << fresh << std::endl;
 
 					// Execute function coresponding to identifier
 					packet_hashmap[fresh.identifier_buffer](fresh);
