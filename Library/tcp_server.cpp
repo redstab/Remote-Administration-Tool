@@ -137,8 +137,6 @@ bool tcp_server::bind()
 packet tcp_server::recv(int sock)
 {
 	// Receive Packet Header Size 32 bytes (char)
-
-
 	const auto header_length = 32;
 	const auto recv_size = 65536;
 	char header_buffer[header_length + 1]{};
@@ -147,7 +145,7 @@ packet tcp_server::recv(int sock)
 
 	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received without error
 	{
-		const std::string header_string(header_buffer);
+		std::string header_string(header_buffer);
 
 		if (is_digits(header_buffer)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
@@ -378,7 +376,7 @@ std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
 	for (auto i = 0; i < iter; i++)
 	{
 		char* data = new char[size + 1]{};
-		if (readable(sock, 0, 500))
+		if (readable(sock, 5, 0))
 		{
 			int bytes_recv = ::recv(sock, data, size, 0);
 			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
@@ -401,7 +399,7 @@ std::string tcp_server::recv_excess(int size, SOCKET sock)
 
 	std::string excess_data;
 
-	if (readable(sock, 0, 500) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock, 5, 0) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
 	{
 		excess_data = data;
 	}
@@ -462,7 +460,7 @@ void tcp_server::authenticate(client challenger)
 		}
 	}
 
-	console << "[-] Disconnected [" << challenger.ip_address << "] ";
+	console << "[-] Disconnected [" << challenger.ip_address << "]\n";
 	closesocket(challenger.socket_id);
 	FD_CLR(challenger.socket_id, &client_set);
 }

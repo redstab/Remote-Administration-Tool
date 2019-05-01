@@ -111,20 +111,17 @@ bool tcp_client::connect()
 					if (std::stoi(result.data_buffer)) {
 						std::cout << "[+] Successfully authenticated and connected using code: " << response << std::endl;
 						connected = true;
+						return true;
 					}
 					else {
 						std::cout << "[-] Could not Authenticate " << std::endl;
-						return false;
 					}
-
 				}
-
 			}
-
 		}
 	}
 
-	return true;
+	connect();
 }
 
 bool tcp_client::send(std::string input, std::string head)
@@ -225,7 +222,7 @@ packet tcp_client::recv(int sock)
 
 	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received header without error
 	{
-		const std::string header_string(header_buffer);
+ 		std::string header_string(header_buffer);
 
 		if (is_digits(header_string)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
@@ -234,15 +231,15 @@ packet tcp_client::recv(int sock)
 
 			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
 
-			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
-
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
+			
 			return {
 				merge(head_iteration_buffer, head_excess_buffer),
 				merge(data_iteration_buffer, data_excess_buffer),
 				identifier_size,
-				static_cast<long long>(data_size),
+				data_size,
 				0
 			};
 
@@ -266,7 +263,7 @@ bool tcp_client::readable(SOCKET sock)
 	fd_set socket_descriptor;
 	FD_ZERO(&socket_descriptor);
 	FD_SET(sock, &socket_descriptor);
-	timeval timeout{ 0,500 };
+	timeval timeout{ 5,0 };
 
 	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
 }
@@ -280,7 +277,7 @@ std::tuple<int, int> tcp_client::format_input(std::string victim)
 
 bool tcp_client::is_digits(std::string victim) const
 {
-	return std::all_of(victim.begin(), victim.end(), ::isdigit);
+	return std::all_of(victim.begin(), victim.end(), [&](char c) {return c >= '0' && c <= '9'; }) && !victim.empty();
 }
 
 template <typename ... Arguments>

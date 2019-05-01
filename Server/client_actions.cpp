@@ -57,10 +57,11 @@ bool tcp_server::request_info(client& victim, bool request)
 						victim.packet_queue.erase(std::remove(victim.packet_queue.begin(), victim.packet_queue.end(), *search), victim.packet_queue.end());
 					}
 				}
+
+				if (std::all_of(victim.computer_info.begin(), victim.computer_info.end(), [&](std::pair<std::string, std::string> const& i) {return !i.second.empty(); })) {
+					return true;
+				}
 			}
 		}
-
-		return !std::all_of(victim.computer_info.begin(), victim.computer_info.end(), [&](std::pair<std::string, std::string> const& i) {return victim.computer_info.begin()->second == i.second; });
-
 	}
 }
