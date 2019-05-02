@@ -41,13 +41,13 @@ void tcp_client::set_ip(std::string new_ip)
 
 std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_hashmap()
 {
-	return { 
-	
+	return {
+
 		{"Info Request",[&](packet fresh) {
-			//std::cout << "Info Request of: " << fresh.data_buffer << "\n";
-			tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
-		}} 
-	
+		//std::cout << "Info Request of: " << fresh.data_buffer << "\n";
+		tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
+	}}
+
 	};
 }
 
@@ -66,7 +66,7 @@ void tcp_client::packet_handler()
 
 				// Only if it exists in hashmap
 				if (packet_hashmap.count(fresh.identifier_buffer) != 0) {
-					
+
 					// Log Packet
 
 					std::cout << "<- " << fresh << std::endl;
@@ -98,28 +98,37 @@ bool tcp_client::startup()
 
 bool tcp_client::connect()
 {
-	if (socket_connect(connection_socket, socket_hint)) {
+	if (socket_connect(connection_socket, socket_hint)) { // Connect socket
 
-		auto handshake(tcp_client::recv(connection_socket));
+		auto handshake(tcp_client::recv(connection_socket)); // Receive authentication code 
 
-		if (is_digits(handshake.data_buffer)) {
+		if (is_digits(handshake.data_buffer)) { // Check if the code is only digits, becasue stoi
+
 			int request = std::stoi(handshake.data_buffer);
-			int response = generate_solution(request);
-			if (tcp_client::send(std::to_string(response), "Response")) {
-				auto result(tcp_client::recv(connection_socket));
+
+			int response = generate_solution(request); // Uses arithmetic operations to solve authentication code
+
+			if (tcp_client::send(std::to_string(response), "Response")) { // Sends Response 
+
+				auto result(tcp_client::recv(connection_socket)); // Receives verdict
+
 				if (is_digits(result.data_buffer)) {
-					if (std::stoi(result.data_buffer)) {
+
+					if (std::stoi(result.data_buffer)) { // if(int) -> true if int > 0 , false if int < 0
 						std::cout << "[+] Successfully authenticated and connected using code: " << response << std::endl;
 						connected = true;
-						return true;
+						return true; // Only escape for function
 					}
 					else {
 						std::cout << "[-] Could not Authenticate " << std::endl;
 					}
+
 				}
 			}
 		}
 	}
+
+	// Retry until connected 
 
 	connect();
 }
@@ -218,11 +227,11 @@ packet tcp_client::recv(int sock)
 	const auto recv_size = 65536;
 	char header_buffer[header_length + 1]{};
 
-	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0);
+	const auto bytes_recv = ::recv(sock, header_buffer, header_length, 0); // Receive Header
 
 	if (handle_error(format_error(bytes_recv), sock)) // Check if Socket received header without error
 	{
- 		std::string header_string(header_buffer);
+		std::string header_string(header_buffer);
 
 		if (is_digits(header_string)) // Check if string is only consisting of numbers bcs of stoi in format_input()
 		{
@@ -234,7 +243,7 @@ packet tcp_client::recv(int sock)
 			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
 
 			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
-			
+
 			return {
 				merge(head_iteration_buffer, head_excess_buffer),
 				merge(data_iteration_buffer, data_excess_buffer),
@@ -246,7 +255,6 @@ packet tcp_client::recv(int sock)
 		}
 	}
 
-
 	return {
 		"",
 		"",
@@ -257,13 +265,12 @@ packet tcp_client::recv(int sock)
 
 }
 
-
 bool tcp_client::readable(SOCKET sock)
 {
 	fd_set socket_descriptor;
 	FD_ZERO(&socket_descriptor);
 	FD_SET(sock, &socket_descriptor);
-	timeval timeout{ 5,0 };
+	timeval timeout{ 3,0 };
 
 	return select(0, &socket_descriptor, nullptr, nullptr, &timeout);
 }
@@ -325,7 +332,7 @@ std::string tcp_client::recv_excess(int size, SOCKET sock)
 	return excess_data;
 }
 
-std::tuple<std::string, std::string> tcp_client::half_string(const std::string & victim)
+std::tuple<std::string, std::string> tcp_client::half_string(const std::string& victim)
 {
 	const auto half = victim.length() / 2;
 	std::string first(victim.substr(0, half));

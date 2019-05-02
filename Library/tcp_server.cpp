@@ -134,7 +134,7 @@ bool tcp_server::bind()
 	return socket_bind(main_socket, accepting_port);
 }
 
-packet tcp_server::recv(int sock)
+packet tcp_server::recv(int sock, int second)
 {
 	// Receive Packet Header Size 32 bytes (char)
 	const auto header_length = 32;
@@ -154,9 +154,9 @@ packet tcp_server::recv(int sock)
 
 			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size, second); // Iteration + Excess -> recv() -> std::string(), std::string()
 
-			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // Iteration + Excess -> recv() -> std::string(), std::string()
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size, second); // Iteration + Excess -> recv() -> std::string(), std::string()
 
 			return {
 				merge(head_iteration_buffer, head_excess_buffer),
@@ -222,9 +222,9 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 		auto disconnected_client = find_client(std::to_string(socket));
 		if (disconnected_client != client_list.end()) {
 			console << "[-] Disconnected [" << disconnected_client->name << "]\n";
-			
+
 			// Remove and disconnects client
-			
+
 			client_list.erase(std::remove(client_list.begin(), client_list.end(), *disconnected_client), client_list.end());
 			FD_CLR(socket, &client_set);
 			closesocket(socket);
@@ -250,12 +250,12 @@ bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
 	return error.code == 0;
 }
 
-bool tcp_server::socket_listen(SOCKET & sock)
+bool tcp_server::socket_listen(SOCKET& sock)
 {
 	return ::listen(sock, SOMAXCONN) != SOCKET_ERROR;
 }
 
-bool tcp_server::socket_bind(SOCKET & sock, int bind_port)
+bool tcp_server::socket_bind(SOCKET& sock, int bind_port)
 {
 	sockaddr_in socket_hint{};
 	socket_hint.sin_family = AF_INET;
@@ -265,12 +265,12 @@ bool tcp_server::socket_bind(SOCKET & sock, int bind_port)
 	return ::bind(sock, reinterpret_cast<sockaddr*>(&socket_hint), sizeof(socket_hint)) != SOCKET_ERROR;
 }
 
-bool tcp_server::wsa_startup(WSADATA & sock_data)
+bool tcp_server::wsa_startup(WSADATA& sock_data)
 {
 	return WSAStartup(MAKEWORD(2, 2), &sock_data) == 0;
 }
 
-bool tcp_server::initialize_socket(SOCKET & sock)
+bool tcp_server::initialize_socket(SOCKET& sock)
 {
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	return sock != INVALID_SOCKET;
@@ -329,7 +329,7 @@ void tcp_server::handler()
 				if (current_cli != client_list.end()) {
 					if (current_cli->socket_id != 0) {
 						if (!current_cli->blocking) {
-							auto msg(tcp_server::recv(current_cli->socket_id));
+							auto msg(tcp_server::recv(current_cli->socket_id, 1));
 							if (msg.error_code == success) {
 								current_cli->packet_queue.push_back(msg);
 							}
@@ -370,13 +370,13 @@ std::string tcp_server::merge(Arguments ... args)
 	return std::string((args + ...));
 }
 
-std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
+std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock, int second)
 {
 	std::string accumulated_data;
 	for (auto i = 0; i < iter; i++)
 	{
 		char* data = new char[size + 1]{};
-		if (readable(sock, 5, 0))
+		if (readable(sock, second, 0))
 		{
 			int bytes_recv = ::recv(sock, data, size, 0);
 			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
@@ -388,18 +388,18 @@ std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock)
 	return accumulated_data;
 }
 
-std::tuple<std::string, std::string> tcp_server::recv_(SOCKET sock, int iter, int excess, int recv_size)
+std::tuple<std::string, std::string> tcp_server::recv_(SOCKET sock, int iter, int excess, int recv_size, int second)
 {
-	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
+	return std::make_tuple(recv_iteration(iter, recv_size, sock, second), recv_excess(excess, sock, second));
 }
 
-std::string tcp_server::recv_excess(int size, SOCKET sock)
+std::string tcp_server::recv_excess(int size, SOCKET sock, int second)
 {
 	char* data = new char[size + 1]{};
 
 	std::string excess_data;
 
-	if (readable(sock, 5, 0) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock, second, 0) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
 	{
 		excess_data = data;
 	}
@@ -409,7 +409,7 @@ std::string tcp_server::recv_excess(int size, SOCKET sock)
 	return excess_data;
 }
 
-std::tuple<std::string, std::string> tcp_server::half_string(const std::string & victim)
+std::tuple<std::string, std::string> tcp_server::half_string(const std::string& victim)
 {
 	const auto half = victim.length() / 2;
 	std::string first(victim.substr(0, half));
@@ -443,7 +443,7 @@ void tcp_server::authenticate(client challenger)
 
 		if (readable(challenger.socket_id, 5, 0)) {
 
-			packet client_response = recv(challenger.socket_id);
+			packet client_response = recv(challenger.socket_id, 2);
 
 			if (is_digits(client_response.data_buffer)) {
 
@@ -557,7 +557,7 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 	};
 }
 
-std::string tcp_server::pad_text(const std::string & victim)
+std::string tcp_server::pad_text(const std::string& victim)
 {
 	const auto head_length = 16;
 	const auto pad_length = (!victim.empty()) ? static_cast<int>(log10(victim.size())) + 1 : 1;

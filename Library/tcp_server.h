@@ -9,12 +9,12 @@ inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 		: os << "[ Error Code " << error.code << " ] - \"" << error.msg << "\"" << std::endl;
 }
 
-inline std::ostream& operator<<(std::ostream & os, const packet & pack)
+inline std::ostream& operator<<(std::ostream& os, const packet& pack)
 {
 	return os << "[" << pack.data_buffer << "|" << pack.data_size << "|" << pack.identifier_buffer << "|" << pack.id_size << "|" << pack.error_code << "]" << std::endl;
 }
 
-inline std::ostream& operator<<(std::ostream & os, const client & cli)
+inline std::ostream& operator<<(std::ostream& os, const client& cli)
 {
 	return os << "[" << cli.socket_id << "|" << cli.name << "|" << cli.ip_address << "|" << std::boolalpha << cli.blocking << "]";
 }
@@ -42,7 +42,7 @@ public:
 	bool manager();
 	bool bind();
 
-	packet recv(int);
+	packet recv(int, int);
 
 	bool send(client, std::string, std::string);
 
@@ -150,7 +150,7 @@ private:
 	/// <param name="iter">Number of times recv is to be called</param>
 	/// <param name="size">The size the recv call</param>
 	/// <returns>the string consisting of all the data accumulated</returns>
-	std::string recv_iteration(int, int, SOCKET);
+	std::string recv_iteration(int, int, SOCKET, int);
 
 	/// <summary>
 	/// Cover recv_iter and recv_excess in one function
@@ -160,7 +160,7 @@ private:
 	/// <param name="excess">The amount of excess data</param>
 	/// <param name="recv">The amount to be recv every iteration</param>
 	/// <returns></returns>
-	std::tuple<std::string, std::string> recv_(SOCKET, int, int, int);
+	std::tuple<std::string, std::string> recv_(SOCKET, int, int, int, int);
 
 	/// <summary>
 	/// Calls recv to gather the excess data
@@ -168,7 +168,7 @@ private:
 	/// <param name="size">The excess size</param>
 	/// <param name="sock">The socket to get data from</param>
 	/// <returns>The excess data</returns>
-	std::string recv_excess(int, SOCKET);
+	std::string recv_excess(int, SOCKET, int);
 
 	/// <summary>
 	/// Splits string in to 2 strings by splitting in half
@@ -216,7 +216,7 @@ private:
 	/// <returns>The vector iterator of the item if it succeded to find the structure or the vector iterator of list.end() if failed to find structure</returns>
 	template<typename T, typename V, typename C>// https://stackoverflow.com/a/55315987/4363773
 	typename C::iterator search_vector(C& list, T V::* member, T value) {
-		return std::find_if(list.begin(), list.end(), [value, member](V & c) {return c.*member == value; });
+		return std::find_if(list.begin(), list.end(), [value, member](V& c) {return c.*member == value; });
 	}
 
 	/// <summary>

@@ -53,8 +53,8 @@ bool pipe::send_data(std::string msg)
 
 void pipe::run_pe(void* Image) // MAKE THIS RELIABLE PLS 
 {
-	manip::toogle_output(std::cout,verbose);
-	
+	manip::toogle_output(std::cout, verbose);
+
 	auto error = [=](int error) {
 		char msg_buf[256]{ '\0' };
 
@@ -134,7 +134,7 @@ void pipe::run_pe(void* Image) // MAKE THIS RELIABLE PLS
 				pImageBase = VirtualAllocEx(PI.hProcess, LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 				//pImageBase = VirtualAllocEx(PI.hProcess, LPVOID(NtHeader->OptionalHeader.ImageBase), NtHeader->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 				hexout << "[run_pe] Allocates memory from [" << std::hex << NtHeader->OptionalHeader.ImageBase << "] -> [" << NtHeader->OptionalHeader.ImageBase + NtHeader->OptionalHeader.SizeOfImage << "]" << std::endl;
-				
+
 				if (pImageBase == 00000000) { // if allocation failed, means that image is already loaded or cannot be
 					std::cout << error(GetLastError()) << std::endl;
 
@@ -152,9 +152,9 @@ void pipe::run_pe(void* Image) // MAKE THIS RELIABLE PLS
 
 
 					std::cout << "ReBase: " << ReBaseImage(nullptr, nullptr, true, true, true, 0, &old_size, &old_base, &new_size, &new_base, 0) << std::endl << error(GetLastError()) << std::endl;
-					
+
 					std::cout << "Old Size: " << old_size << std::endl << "Old Base: " << old_base << std::endl << "New Size:" << new_size << std::endl << "New Base: " << new_base << std::endl;
-					
+
 					ResumeThread(PI.hThread);
 					Sleep(30000);
 					exit(-23);
