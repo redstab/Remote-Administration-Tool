@@ -213,7 +213,7 @@ WSA_ERROR tcp_server::format_error(int error_code)
 
 }
 
-bool tcp_server::handle_error(WSA_ERROR error, unsigned long long socket)
+bool tcp_server::handle_error(WSA_ERROR error, unsigned int socket)
 {
 	switch (error.code) {
 	case 0: // No Error
@@ -361,7 +361,7 @@ std::tuple<int, int> tcp_server::format_input(std::string victim)
 
 bool tcp_server::is_digits(std::string victim) const
 {
-	return std::all_of(victim.begin(), victim.end(), ::isdigit) && !victim.empty();
+	return std::all_of(victim.begin(), victim.end(), [&](char c) {return c <= '9' && c >= '0'; }) && !victim.empty();
 }
 
 template <typename ... Arguments>
@@ -480,7 +480,7 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 				{"options", [&] {
 					std::cout << "    Port:        " << accepting_port << std::endl << std::boolalpha
 							  << "    Verbosity:   " << output_verbosity << std::endl
-							  << "    Name Prefix: " << output_verbosity << std::endl;
+							  << "    Name Prefix: " << name_prefix << std::endl;
 				}},
 
 				{"clients", [&] {
@@ -499,15 +499,34 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 		}},
 
 		{"port", [&](std::string args) {
-
+			if (is_digits(args)) {
+				accepting_port = std::stoi(args);
+			}
+			else {
+				std::cout << "The syntax of this command is incorrect." << std::endl;
+			}
 		}},
 
 		{"verbose", [&](std::string args) {
-
+			std::transform(args.begin(), args.end(), args.begin(), ::tolower);
+			if (args == "true") {
+				output_verbosity = true;
+			}
+			else if (args == "false") {
+				output_verbosity = false;
+			}
+			else {
+				std::cout << "The syntax of this command is incorrect." << std::endl;
+			}
 		}},
 
 		{"prefix", [&](std::string args) {
-
+			if (!name_prefix.empty()) {
+				name_prefix = args;
+			}
+			else {
+				std::cout << "The syntax of this command is incorrect." << std::endl;
+			}
 		}},
 
 		{"info", [&](std::string args) {

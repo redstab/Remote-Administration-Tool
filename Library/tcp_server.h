@@ -81,7 +81,7 @@ private:
 	/// <param name="error">A constructed WSA_ERROR struct</param>
 	/// <param name="socket">The socket that might get dc'ed if error is fatal</param>
 	/// <returns>Whether the function succeeds (Bool)</returns>
-	bool handle_error(WSA_ERROR, unsigned long long);
+	bool handle_error(WSA_ERROR, unsigned int);
 
 	/// <summary>
 	/// Places the input socket in a state which allows it to listen for incoming connections
@@ -232,6 +232,11 @@ private:
 	/// <returns>Padded string</returns>
 	std::string pad_text(const std::string& victim);
 
+	/// <summary>
+	/// Checks if input string is a client (name | ip | sock_id) and searches for it in the client list
+	/// </summary>
+	/// <param name="args">The search query</param>
+	/// <returns>A vector iterator to the found item or end() iterator if it did not found anything</returns>
 	std::vector<client>::iterator find_client(std::string);
 
 	template<typename Container, typename Item>
@@ -246,4 +251,6 @@ private:
 	// Client Manipulative Functions
 
 	bool request_info(client&, bool);
+
+
 };

