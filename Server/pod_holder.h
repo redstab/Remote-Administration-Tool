@@ -16,6 +16,11 @@ struct WSA_ERROR
 	std::string msg;
 };
 
+enum action {
+	request,
+	fetch
+};
+
 struct packet
 {
 

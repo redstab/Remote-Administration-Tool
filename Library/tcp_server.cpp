@@ -3,40 +3,6 @@
 #include "helper_file.h"
 //Server
 
-tcp_server::tcp_server(int port)
-{
-	if (wsa_startup(socket_data))
-	{
-		if (initialize_socket(main_socket))
-		{
-			if (socket_bind(main_socket, port))
-			{
-				if (socket_listen(main_socket))
-				{
-					FD_ZERO(&client_set);
-					FD_SET(main_socket, &client_set);
-				}
-				else
-				{
-					exit(-4);
-				}
-			}
-			else
-			{
-				exit(-3);
-			}
-		}
-		else
-		{
-			exit(-2);
-		}
-	}
-	else
-	{
-		exit(-1);
-	}
-}
-
 tcp_server::tcp_server(std::string name)
 {
 
@@ -313,9 +279,13 @@ void tcp_server::handler()
 
 				inet_ntop(AF_INET, &socket_address.sin_addr, host, NI_MAXHOST);
 
+				console << "[+] Incoming connection\n";
+
 				auto current_challanger = client(host, client_socket, std::string(name_prefix + "_" + manip::zero_pad(client_list.size(), 3)));
 
 				std::thread authentication_thread(&tcp_server::authenticate, this, current_challanger);
+				
+				console << "[+] Authentication in progress\n";
 
 				authentication_thread.detach();
 
@@ -324,7 +294,6 @@ void tcp_server::handler()
 			else  // New Message
 
 			{
-
 				auto current_cli(search_vector(client_list, &client::socket_id, int(current_socket)));
 				if (current_cli != client_list.end()) {
 					if (current_cli->socket_id != 0) {
@@ -336,7 +305,6 @@ void tcp_server::handler()
 						}
 					}
 				}
-
 			}
 		}
 	}
@@ -372,20 +340,20 @@ std::string tcp_server::merge(Arguments ... args)
 
 std::string tcp_server::recv_iteration(int iter, int size, SOCKET sock, int second)
 {
-	std::string accumulated_data;
+	std::string received_data;
+
 	for (auto i = 0; i < iter; i++)
 	{
-		char* data = new char[size + 1]{};
 		if (readable(sock, second, 0))
-		{
-			int bytes_recv = ::recv(sock, data, size, 0);
+		{	
+			std::vector<char> data(size);
+			int bytes_recv = ::recv(sock, &data.at(0), size, 0);
 			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
-				accumulated_data += data;
-			} // TODO else data loss 
+				received_data += std::string(data.begin(), data.end());
+			}
 		}
-		delete[] data;
 	}
-	return accumulated_data;
+	return received_data;
 }
 
 std::tuple<std::string, std::string> tcp_server::recv_(SOCKET sock, int iter, int excess, int recv_size, int second)
@@ -395,16 +363,14 @@ std::tuple<std::string, std::string> tcp_server::recv_(SOCKET sock, int iter, in
 
 std::string tcp_server::recv_excess(int size, SOCKET sock, int second)
 {
-	char* data = new char[size + 1]{};
+	std::vector<char> data(size);
 
 	std::string excess_data;
 
-	if (readable(sock, second, 0) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock, second, 0) && handle_error(format_error(::recv(sock, &data.at(0), size, 0)), sock))
 	{
-		excess_data = data;
+		excess_data = std::string(data.begin(), data.end());
 	}
-
-	delete[] data;
 
 	return excess_data;
 }
@@ -450,7 +416,7 @@ void tcp_server::authenticate(client challenger)
 				auto response_key = std::stoi(client_response.data_buffer);
 
 				if (response_key == key && tcp_server::send(challenger, "1", "Authentication")) {
-					console << "[+] Connected [" << challenger.ip_address << "] as " << challenger.socket_id << " named " << challenger.name << "\n";
+					console << "[+] Authenticated [" << challenger.ip_address << "] as " << challenger.socket_id << " named " << challenger.name << "\n";
 					challenger.set_block(false);
 					client_list.push_back(challenger);
 					return;
@@ -460,7 +426,7 @@ void tcp_server::authenticate(client challenger)
 		}
 	}
 
-	console << "[-] Disconnected [" << challenger.ip_address << "]\n";
+	console << "[-] Rejected [" << challenger.ip_address << "]\n";
 	closesocket(challenger.socket_id);
 	FD_CLR(challenger.socket_id, &client_set);
 }
@@ -534,8 +500,8 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 			auto search = find_client(args);
 
 			if (search != client_list.end()) {
-				request_info(*search, true);
-				active_jobs.push_back({ search->socket_id, std::thread(&tcp_server::request_info, this, std::ref(*search), false) });
+				info(*search, request);
+				active_jobs.push_back({ search->socket_id, std::thread(&tcp_server::info, this, std::ref(*search), fetch) });
 			}
 			else if (args.empty()) {
 				std::cout << "The syntax of this command is incorrect." << std::endl;
@@ -560,7 +526,9 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 						"\n" << std::endl;
 
 					for (auto [key,value] : search->computer_info) {
-						std::cout << "    " << key << ": " << value << std::endl;
+						if (!value.empty()) {
+							std::cout << "    " << key << ": " << value << std::endl;
+						}
 					}
 
 					std::cout << std::endl;

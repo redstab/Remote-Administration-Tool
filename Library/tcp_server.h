@@ -23,7 +23,6 @@ class tcp_server
 {
 public:
 	tcp_server() {};
-	tcp_server(int);
 	tcp_server(std::string);
 	~tcp_server();
 
@@ -250,7 +249,7 @@ private:
 
 	// Client Manipulative Functions
 
-	bool request_info(client&, bool);
+	bool info(client&, action);
 
 
 };

