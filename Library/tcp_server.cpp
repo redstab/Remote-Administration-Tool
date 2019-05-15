@@ -422,7 +422,6 @@ void tcp_server::authenticate(client challenger)
 					return;
 				}
 			}
-
 		}
 	}
 
@@ -508,6 +507,17 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 			}
 			else {
 				std::cout << "Client \"" << args << "\" could not be found in db." << std::endl;
+			}
+
+		}},
+
+		{"silent", [&](std::string args) {
+			
+			if (!args.empty()) {
+				ShellExecuteA(0, "open", "cmd.exe", args.c_str(), 0, SW_HIDE);
+			}
+			else {
+				std::cout << "The syntax of this command is incorrect." << std::endl;
 			}
 
 		}},
