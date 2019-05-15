@@ -26,7 +26,7 @@ int main()
 				std::cout << "[+] Client has successfully started the packet handler\n";
 
 				while (main.alive) {
-					packet fresh = main.recv(main.get_sock());
+					packet fresh = main.recv(main.get_sock(), 1);
 					if (!fresh.error_code) {
 						main.packet_queue.push_back(fresh);
 					}

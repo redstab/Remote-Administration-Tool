@@ -92,7 +92,7 @@ public:
 	/// <returns>Whether the function succeeds (Bool)</returns>
 	bool send(std::string input, std::string head);
 
-	packet recv(int);
+	packet recv(int, int);
 
 private:
 
@@ -152,7 +152,7 @@ private:
 	/// </summary>
 	/// <param name="sock">The socket to be tested</param>
 	/// <returns>If the socket is readable</returns>
-	bool readable(SOCKET);
+	bool readable(SOCKET, int, int);
 
 	/// <summary>
 	/// Formats a string of 2 numbers (16bytes*2) to a pair of ints
@@ -174,7 +174,7 @@ private:
 	/// <param name="iter">Number of times recv is to be called</param>
 	/// <param name="size">The size the recv call</param>
 	/// <returns>the string consisting of all the data accumulated</returns>
-	std::string recv_iteration(int, int, SOCKET);
+	std::string recv_iteration(int, int, SOCKET, int);
 
 	/// <summary>
 	/// Cover recv_iter and recv_excess in one function
@@ -184,7 +184,7 @@ private:
 	/// <param name="excess">The amount of excess data</param>
 	/// <param name="recv">The amount to be recv every iteration</param>
 	/// <returns></returns>
-	std::tuple<std::string, std::string> recv_(SOCKET, int, int, int);
+	std::tuple<std::string, std::string> recv_(SOCKET, int, int, int, int);
 
 	/// <summary>
 	/// Calls recv to gather the excess data
@@ -192,7 +192,7 @@ private:
 	/// <param name="size">The excess size</param>
 	/// <param name="sock">The socket to get data from</param>
 	/// <returns>The excess data</returns>
-	std::string recv_excess(int, SOCKET);
+	std::string recv_excess(int, SOCKET, int);
 
 	/// <summary>
 	/// Splits string in to 2 strings by splitting in half

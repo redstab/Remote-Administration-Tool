@@ -21,8 +21,23 @@ int main()
 		<< "CPU Name: " << winapi::computer::info::cpu_name() << std::endl
 		<< "CPU Speed: " << winapi::computer::info::cpu_speed() << " MHz" << std::endl
 		<< "RAM Size: " << winapi::computer::info::ram_size() << " GB" << std::endl
-		<< "GPU Name: " << winapi::computer::info::video_adapter() << std::endl
-		<< "User Groups: " << winapi::computer::info::user_groups() << std::endl << std::endl;
+		<< "GPU Name: " << winapi::computer::info::video_adapter() << std::endl;
+
+	STARTUPINFOA startup_info{};
+	PROCESS_INFORMATION process_info{};
+	SECURITY_ATTRIBUTES security_attrib{};
+
+	startup_info.dwFlags = STARTF_USESHOWWINDOW;
+	startup_info.wShowWindow = SW_HIDE;
+
+	security_attrib = { sizeof(SECURITY_ATTRIBUTES), 0, true };
+
+	std::cout << CreateProcessA(nullptr,"C:\\Windows\\System32\\msinfo32.exe /report C:\\cmder\\report.txt" , 0, 0, true, 0, 0, 0, &startup_info, &process_info) << " " << GetLastError();
+
+	ShowWindow(HWND(process_info.hProcess), SW_HIDE);
+
+	WaitForSingleObject(process_info.hProcess, INFINITE);
+
 	//std::cout << std::endl << std::endl << "Before Serialize" << std::endl << std::endl;
 	//auto query_result = winapi::computer::info::query_wmi("Win32_LogicalDisk");
 	//winapi::computer::info::print_query(query_result);

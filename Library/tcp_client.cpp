@@ -44,7 +44,6 @@ std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_
 	return {
 
 		{"Info Request",[&](packet fresh) {
-		//std::cout << "Info Request of: " << fresh.data_buffer << "\n";
 		tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
 	}}
 
@@ -100,7 +99,7 @@ bool tcp_client::connect()
 {
 	if (socket_connect(connection_socket, socket_hint)) { // Connect socket
 
-		auto handshake(tcp_client::recv(connection_socket)); // Receive authentication code 
+		auto handshake(tcp_client::recv(connection_socket, 2)); // Receive authentication code 
 
 		if (is_digits(handshake.data_buffer)) { // Check if the code is only digits, becasue stoi
 
@@ -110,7 +109,7 @@ bool tcp_client::connect()
 
 			if (tcp_client::send(std::to_string(response), "Response")) { // Sends Response 
 
-				auto result(tcp_client::recv(connection_socket)); // Receives verdict
+				packet result(tcp_client::recv(connection_socket, 2)); // Receives verdict
 
 				if (is_digits(result.data_buffer)) {
 
@@ -220,7 +219,7 @@ std::string tcp_client::pad_text(const std::string& victim)
 }
 
 
-packet tcp_client::recv(int sock)
+packet tcp_client::recv(int sock, int second)
 {
 	// Receive Packet Header Size 32 bytes (char)
 	const auto header_length = 32;
@@ -240,9 +239,9 @@ packet tcp_client::recv(int sock)
 
 			auto [head_iterations, head_excess, data_iterations, data_excess] = calc_iter(identifier_size, data_size, recv_size); // (Size -> (iteration + excess bytes)) => 500000 -> 7, 41248
 
-			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
+			auto [head_iteration_buffer, head_excess_buffer] = recv_(sock, head_iterations, head_excess, recv_size, second); // iteration + excess -> recv() -> std::string(), std::string()
 
-			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size); // iteration + excess -> recv() -> std::string(), std::string()
+			auto [data_iteration_buffer, data_excess_buffer] = recv_(sock, data_iterations, data_excess, recv_size, second); // iteration + excess -> recv() -> std::string(), std::string()
 
 			return {
 				merge(head_iteration_buffer, head_excess_buffer),
@@ -265,7 +264,7 @@ packet tcp_client::recv(int sock)
 
 }
 
-bool tcp_client::readable(SOCKET sock)
+bool tcp_client::readable(SOCKET sock, int seconds, int milli)
 {
 	fd_set socket_descriptor;
 	FD_ZERO(&socket_descriptor);
@@ -293,41 +292,78 @@ std::string tcp_client::merge(Arguments ... args)
 	return std::string((args + ...));
 }
 
-std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock)
+//std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock)
+//{
+//	std::string accumulated_data;
+//	for (auto i = 0; i < iter; i++)
+//	{
+//		char* data = new char[size + 1]{};
+//		if (readable(sock))
+//		{
+//			int bytes_recv = ::recv(sock, data, size, 0);
+//			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
+//				accumulated_data += data;
+//			} // TODO else data loss 
+//		}
+//		delete[] data;
+//	}
+//	return accumulated_data;
+//}
+
+//std::tuple<std::string, std::string> tcp_client::recv_(SOCKET sock, int iter, int excess, int recv_size)
+//{
+//	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
+//}
+
+//std::string tcp_client::recv_excess(int size, SOCKET sock)
+//{
+//	char* data = new char[size + 1]{};
+//
+//	std::string excess_data;
+//
+//	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+//	{
+//		excess_data = data;
+//	}
+//
+//	delete[] data;
+//
+//	return excess_data;
+//}
+
+std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock, int second)
 {
-	std::string accumulated_data;
+	std::string received_data;
+
 	for (auto i = 0; i < iter; i++)
 	{
-		char* data = new char[size + 1]{};
-		if (readable(sock))
+		if (readable(sock, second, 0))
 		{
-			int bytes_recv = ::recv(sock, data, size, 0);
+			std::vector<char> data(size);
+			int bytes_recv = ::recv(sock, &data.at(0), size, 0);
 			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
-				accumulated_data += data;
-			} // TODO else data loss 
+				received_data += std::string(data.begin(), data.end());
+			}
 		}
-		delete[] data;
 	}
-	return accumulated_data;
+	return received_data;
 }
 
-std::tuple<std::string, std::string> tcp_client::recv_(SOCKET sock, int iter, int excess, int recv_size)
+std::tuple<std::string, std::string> tcp_client::recv_(SOCKET sock, int iter, int excess, int recv_size, int second)
 {
-	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
+	return std::make_tuple(recv_iteration(iter, recv_size, sock, second), recv_excess(excess, sock, second));
 }
 
-std::string tcp_client::recv_excess(int size, SOCKET sock)
+std::string tcp_client::recv_excess(int size, SOCKET sock, int second)
 {
-	char* data = new char[size + 1]{};
+	std::vector<char> data(size);
 
 	std::string excess_data;
 
-	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
+	if (readable(sock, second, 0) && handle_error(format_error(::recv(sock, &data.at(0), size, 0)), sock))
 	{
-		excess_data = data;
+		excess_data = std::string(data.begin(), data.end());
 	}
-
-	delete[] data;
 
 	return excess_data;
 }

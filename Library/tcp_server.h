@@ -238,6 +238,12 @@ private:
 	/// <returns>A vector iterator to the found item or end() iterator if it did not found anything</returns>
 	std::vector<client>::iterator find_client(std::string);
 
+	/// <summary>
+	/// Checks a given container whether it contains a certain item. 
+	/// </summary>
+	/// <param name="list">the stl container that is suppsed to contain the item</param>
+	/// <param name="item"></param>
+	/// <returns>A vector iterator to the found item or end() iterator if it did not found anything</returns>
 	template<typename Container, typename Item>
 	typename bool consists(Container& list, Item item) {
 		return std::find(list.begin(), list.end(), item) != list.end();
