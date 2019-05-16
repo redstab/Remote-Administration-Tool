@@ -77,3 +77,5 @@ bool tcp_server::info(client& victim, action fetch)
 	}
 
 }
+
+bool tcp_server::silent_execute(std::string command) {}

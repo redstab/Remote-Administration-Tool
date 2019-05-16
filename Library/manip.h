@@ -60,9 +60,11 @@ namespace manip
 		std::string line, function, argument;
 		std::getline(std::cin, line);
 		if (!line.empty()) {
-			std::stringstream ss(line);
-			ss >> function >> argument;
-			prompt_func(function, argument);
+			auto result = line.find(" ");
+			if (result != std::string::npos) {
+				prompt_func(line.substr(0,result), line.substr(result));
+			}
+			
 		}
 	}
 
