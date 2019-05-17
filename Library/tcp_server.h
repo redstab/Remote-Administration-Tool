@@ -61,6 +61,8 @@ private:
 	SOCKET main_socket{};
 	std::thread manager_thread;
 
+	client * selected_client;
+
 	std::vector<client> client_list;
 
 	std::vector<std::pair<int, std::thread>> active_jobs; // use soimething like this to stop threads and make them work together https://en.cppreference.com/w/cpp/thread/condition_variable

@@ -62,7 +62,10 @@ namespace manip
 		if (!line.empty()) {
 			auto result = line.find(" ");
 			if (result != std::string::npos) {
-				prompt_func(line.substr(0,result), line.substr(result));
+				prompt_func(line.substr(0,result), line.substr(result+1));
+			}
+			else {
+				prompt_func(line, "");
 			}
 			
 		}

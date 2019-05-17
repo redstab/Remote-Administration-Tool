@@ -522,6 +522,25 @@ std::map<std::string, std::function<void(std::string)>> tcp_server::create_argma
 
 		}},
 
+		{"select",[&](std::string args) {
+				auto search = find_client(args);
+
+				if (search != client_list.end()) {
+					if (valid_client(*search)) {
+						selected_client = &*search;
+					}
+					else {
+						std::cout << "Client \"" << args << "\" is broken" << std::endl;
+					}
+				}
+				else if (args.empty()) {
+					std::cout << "The syntax of this command is incorrect." << std::endl;
+				}
+				else {
+					std::cout << "Client \"" << args << "\" could not be found in db." << std::endl;
+				}
+		}},
+
 		{"client", [&](std::string args) {
 
 				auto search = find_client(args);

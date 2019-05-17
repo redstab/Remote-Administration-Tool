@@ -100,10 +100,10 @@ namespace winapi {
 			}
 
 			inline std::string windows_user() {
-				std::vector<char> buffer(UNLEN + 1);
-				DWORD size = UNLEN + 1;
+				std::vector<char> buffer(UNLEN);
+				DWORD size = UNLEN;
 				if (GetUserNameA(buffer.data(), &size)) {
-					return std::string(buffer.begin(), buffer.end());
+					return std::string(buffer.begin(), buffer.end()).substr(0, size);
 				}
 				else {
 					return "null";

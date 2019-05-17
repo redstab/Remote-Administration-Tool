@@ -15,7 +15,7 @@ struct packet
 	std::string identifier_buffer;
 	std::string data_buffer;
 
-	long long id_size, data_size; // (long long) bcs std::string::max_size() => 2^63-1
+	long long id_size, data_size;
 
 	int error_code;
 };

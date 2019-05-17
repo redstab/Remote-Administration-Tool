@@ -44,8 +44,9 @@ std::unordered_map<std::string, std::function<void(packet)>> tcp_client::create_
 	return {
 
 		{"Info Request",[&](packet fresh) {
-		tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
-	}}
+			std::cout << "[+] Requesting " << fresh.data_buffer << ", Sending " << computer_info[fresh.data_buffer]() << std::endl;
+			tcp_client::send(computer_info[fresh.data_buffer](), "Info | " + fresh.data_buffer);
+		}}
 
 	};
 }
@@ -65,10 +66,6 @@ void tcp_client::packet_handler()
 
 				// Only if it exists in hashmap
 				if (packet_hashmap.count(fresh.identifier_buffer) != 0) {
-
-					// Log Packet
-
-					std::cout << "<- " << fresh << std::endl;
 
 					// Execute function coresponding to identifier
 					packet_hashmap[fresh.identifier_buffer](fresh);
@@ -128,6 +125,8 @@ bool tcp_client::connect()
 	}
 
 	// Retry until connected 
+
+	Sleep(100);
 
 	connect();
 }
@@ -195,7 +194,7 @@ bool tcp_client::handle_error(WSA_ERROR error, SOCKET sockets)
 	switch (error.code) {
 	case 0: // No Error
 		break;
-	case 10054: case 10061: case 10057: case 10060:
+	case 10056: case 10054: case 10061: case 10057: case 10060:
 		if (connected) {
 			std::cout << "\n[-] Dropped connection to server" << std::endl;
 			connected = false;
@@ -291,45 +290,6 @@ std::string tcp_client::merge(Arguments ... args)
 {
 	return std::string((args + ...));
 }
-
-//std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock)
-//{
-//	std::string accumulated_data;
-//	for (auto i = 0; i < iter; i++)
-//	{
-//		char* data = new char[size + 1]{};
-//		if (readable(sock))
-//		{
-//			int bytes_recv = ::recv(sock, data, size, 0);
-//			if (handle_error(format_error(bytes_recv), sock) && bytes_recv == size) {
-//				accumulated_data += data;
-//			} // TODO else data loss 
-//		}
-//		delete[] data;
-//	}
-//	return accumulated_data;
-//}
-
-//std::tuple<std::string, std::string> tcp_client::recv_(SOCKET sock, int iter, int excess, int recv_size)
-//{
-//	return std::make_tuple(recv_iteration(iter, recv_size, sock), recv_excess(excess, sock));
-//}
-
-//std::string tcp_client::recv_excess(int size, SOCKET sock)
-//{
-//	char* data = new char[size + 1]{};
-//
-//	std::string excess_data;
-//
-//	if (readable(sock) && handle_error(format_error(::recv(sock, data, size, 0)), sock))
-//	{
-//		excess_data = data;
-//	}
-//
-//	delete[] data;
-//
-//	return excess_data;
-//}
 
 std::string tcp_client::recv_iteration(int iter, int size, SOCKET sock, int second)
 {
