@@ -51,55 +51,64 @@ struct menu {
 	menu(std::string title, std::initializer_list<std::any> items) : menu_items(items), menu_title(title) {}
 	std::vector<std::any> menu_items;
 	std::string menu_title;
-	//// Type Identification
-
-	//const std::type_info& value_typeinfo = typeid(item<T>);
-	//const std::type_info& function_typeinfo = typeid(item<void>);
-	//const std::type_info& menu_typeinfo = typeid(item<menu>);
-	//T value_type{};
 };
 
-template<typename T> T c(std::any caster) {
-	return std::any_cast<T>(caster);
-}
-
-int main() {
+template<typename T> void print_menu(menu sample, int level) {
 	const std::type_info& value_typeinfo = typeid(item<int>);
 	const std::type_info& function_typeinfo = typeid(item<void>);
 	const std::type_info& menu_typeinfo = typeid(menu);
-	int ab{};
-	//item<std::string> a("Hello");
+	T ab;
+	std::cout << std::string(level * 4, ' ') << sample.menu_title << std::endl;
+	for (auto menu_item : sample.menu_items) {
+		if (menu_item.type() == function_typeinfo) {
+			std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<void>>(menu_item).get_title() << std::endl;
+		}
+		else if (menu_item.type() == menu_typeinfo) {
+			print_menu<T>(c<menu>(menu_item), level + 1);
+		}
+		else if (menu_item.type() == value_typeinfo) {
+			std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<decltype(ab)>>(menu_item).get_title() << std::endl;
+		}
+	}
+}
 
-	auto sample = [](int a) {std::cout << a << std::endl; };
-	auto sample1 = []() {std::cout << 1 << std::endl; };
+struct handler {
+	handler(menu m) : handled_menu(m){}
+	menu handled_menu;
+};
+
+int main() {
+
+	int ab{};
+
+	auto sample = [](int a) {std::cout << "    " << a << std::endl; };
+	auto sample1 = []() {std::cout << "    " << 1 << std::endl; };
 
 	menu aa("Sample Title",
-		{
-			item<int>("s", sample),
-			item<void>("ss", sample1),
-			item<int>("s", sample),
-			item<int>("ss", sample),
-			item<int>("s", sample),
-			item<void>("s", sample1),
+	{
+		item<int>("s", sample),
+		item<void>("ss", sample1),
+		item<int>("s", sample),
+		item<int>("ss", sample),
+		item<int>("s", sample),
+		item<void>("s", sample1),
+		menu("Hello World", {
 			menu("Hello World", {
 				menu("Hello World", {
-					menu("Hello World", {
-						item<int>("s", sample),
-						item<int>("ss", sample)
-					}),
+					item<int>("s", sample),
 					item<int>("ss", sample)
 				}),
 				item<int>("ss", sample)
 			}),
+			item<int>("ss", sample)
+		}),
+		menu("Hello World", {
 			menu("Hello World", {
 				menu("Hello World", {
 					menu("Hello World", {
 						menu("Hello World", {
 							menu("Hello World", {
-								menu("Hello World", {
-									item<int>("s", sample),
-									item<int>("ss", sample)
-								}),
+								item<int>("s", sample),
 								item<int>("ss", sample)
 							}),
 							item<int>("ss", sample)
@@ -108,33 +117,15 @@ int main() {
 					}),
 					item<int>("ss", sample)
 				}),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
 				item<int>("ss", sample)
 			}),
-		});
+			item<int>("ss", sample),
+			item<int>("ss", sample),
+			item<int>("ss", sample),
+			item<int>("ss", sample),
+			item<int>("ss", sample)
+		}),
+	});
 
-	for (auto menu_item : aa.menu_items) {
-		if (menu_item.type() == function_typeinfo) {
-			std::cout << c<item<void>>(menu_item).get_title() << " is a function" << std::endl;
-		}
-		else if (menu_item.type() == menu_typeinfo) {
-			std::cout << c<menu>(menu_item).menu_title << " is a menu" << std::endl;
-			std::cout << "Children: " << std::endl;
-			for (auto menu_item : aa.menu_items) {
-				if (menu_item.type() == value_typeinfo) {
-					std::cout << c<item<decltype(ab)>>(menu_item).get_title() << " is a item" << std::endl;
-					std::cout << "    Executing " << c<item<decltype(ab)>>(menu_item).get_title() << std::endl;
-					c<item<decltype(ab)>>(menu_item).execute(rand());
-				}
-			}
-		}
-		else if (menu_item.type() == value_typeinfo) {
-			std::cout << c<item<decltype(ab)>>(menu_item).get_title() << " is a item" << std::endl;
-			std::cout << "    Executing " << c<item<decltype(ab)>>(menu_item).get_title() << std::endl;
-			c<item<decltype(ab)>>(menu_item).execute(rand());
-		}
-	}
+	print_menu<int>(aa, 0);
 }
