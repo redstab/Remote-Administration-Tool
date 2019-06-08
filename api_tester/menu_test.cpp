@@ -7,6 +7,8 @@
 #include <functional>
 #include <eh.h>
 #include <Windows.h>
+#include <curses.h>
+
 // this could be done with a map<std::string, std::any>
 template<typename T>
 class item {
@@ -63,10 +65,62 @@ template<typename T> class homogen_handler {
 public:
 	homogen_handler(menu m) : handled_menu(m), display_menu(m) {
 		menu_trail.push_back(m);
+		initscr();
+		noecho();
+		keypad(stdscr, TRUE);
+	}
+
+	void operator()(int selection) {
+		set_selection(selection);
+	}
+
+	homogen_handler& operator++(int) {
+		if (current_selection == display_menu.menu_items.size()) {
+			current_selection = 0;
+			set_selection(current_selection);
+		}
+		else {
+			current_selection++;
+			set_selection(current_selection);
+		}
+		return *this;
+	}
+
+	homogen_handler& operator--(int) {
+		if (current_selection == 0) {
+			current_selection = display_menu.menu_items.size();
+			set_selection(current_selection);
+		}
+		return *this;
+	}
+
+	void show() {
+		men = center_box(2, getmaxy(stdscr), getmaxx(stdscr));
+
+		center_title(men, display_menu.menu_title);
+
+		print_menu(men, display_menu, -1);
+
+		refresh();
+		wrefresh(men);
+	}
+
+	~homogen_handler() {
+		endwin();
 	}
 
 	menu* get_menu() {
 		return &display_menu;
+	}
+
+	void set_selection(int selection) {
+		if (current_selection > 0) {
+			print_item(men, current_selection, false);
+		}
+		current_selection = selection;
+		print_item(men, selection, true);
+		refresh();
+		wrefresh(men);
 	}
 
 	void descend(std::any selection) {
@@ -74,10 +128,7 @@ public:
 	}
 
 	void ascend() {
-		if (menu_trail.size() >= 2) {
-			display_menu = (menu_trail.end()[-2]);
-			menu_trail.erase(menu_trail.end() - 1);
-		}
+		next_menu(display_menu, -1);
 	}
 
 	std::string get_tail() {
@@ -94,39 +145,80 @@ private:
 	menu display_menu;
 	std::vector<menu> menu_trail;
 
+	WINDOW* men;
+
+	int current_selection = 0;
+
 	const std::type_info& t_value = typeid(item<T>);
 	const std::type_info& t_function = typeid(item<void>);
 	const std::type_info& t_menu = typeid(menu);
 
-	void print_menu(menu sample, int level) {
+	WINDOW* new_box(int height, int width, int start_y, int start_x) {
+		WINDOW* local;
+		local = newwin(height, width, start_y, start_x);
+		box(local, 0, 0);
+		return local;
+	}
 
-		std::cout << std::string(level * 4, ' ') << sample.menu_title << std::endl;
-		for (auto menu_item : sample.menu_items) {
-			if (menu_item.type() == t_function) {
-				std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<void>>(menu_item).get_title() << std::endl;
+	WINDOW* center_box(int margin, int y_max, int x_max) {
+		return new_box(y_max - margin * 2, x_max - (margin * 4), margin, margin * 2);
+	}
+
+	void center_title(WINDOW* win, std::string title) {
+		title = " " + title + " ";
+		mvwprintw(win, 0, ceil((getmaxx(win) - title.size()) / 2), title.c_str());
+	}
+
+	void print_item(WINDOW* win, int index, bool selected) {
+		std::any current_item = display_menu.menu_items[index];
+
+		std::string title;
+
+		if (current_item.type() == t_value) {
+			title = std::any_cast<item<T>>(current_item).get_title();
+		}
+		else if (current_item.type() == t_function) {
+			title = std::any_cast<item<void>>(current_item).get_title();
+		}
+		else if (current_item.type() == t_menu) {
+			title = std::any_cast<menu>(current_item).menu_title;
+		}
+		if (selected) {
+			wattron(win, A_STANDOUT);
+			mvwprintw(win, 1 + index, 2, title.c_str());
+			wattroff(win, A_STANDOUT);
+			current_selection = index;
+		}
+		else {
+			mvwprintw(win, 1 + index, 2, title.c_str());
+		}
+		
+	}
+
+	void print_menu(WINDOW* win, menu men, int selected) {
+		for (auto i = 0; (i < men.menu_items.size()); i++) {
+			if (i == selected) {
+				print_item(win, i, true);
 			}
-			else if (menu_item.type() == t_menu) {
-				print_menu(std::any_cast<menu>(menu_item), level + 1);
-			}
-			else if (menu_item.type() == t_value) {
-				std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<T>>(menu_item).get_title() << std::endl;
+			else {
+				print_item(win, i, false);
 			}
 		}
 	}
 
-	void next_menu(menu _menu, std::any selection_item) {
-		if (selection_item.type() == t_menu) {
-			for (auto item : _menu.menu_items) {
-				if (item.type() == t_menu && std::any_cast<menu>(item) == std::any_cast<menu>(selection_item)) {
-					display_menu = std::any_cast<menu>(item);
-					menu_trail.push_back(display_menu);
-					return;
-				}
+	void next_menu(menu _menu, int selection) {
+		if (selection == -1) {
+			if (menu_trail.size() >= 2) {
+				display_menu = (menu_trail.end()[-2]);
+				menu_trail.erase(menu_trail.end() - 1);
 			}
 		}
-
+		else if (selection < _menu.menu_items.size() && _menu.menu_items[selection].type() == t_menu) {
+			display_menu = std::any_cast<menu>(_menu.menu_items[selection]);
+		}
 	}
 };
+
 template<typename T> void print_menu(menu sample, int level) {
 	const std::type_info& t_value = typeid(item<T>);
 	const std::type_info& t_function = typeid(item<void>);
@@ -197,11 +289,13 @@ int main() {
 		});
 
 	homogen_handler<int> a(aa);
-	a.ascend();
-	menu* displayed_menu = a.get_menu();
-	std::cout << a.get_tail() << std::endl << *displayed_menu << std::endl;
-	a.descend((*displayed_menu).menu_items[6]);
-	std::cout << a.get_tail() << std::endl << *displayed_menu << std::endl;
-	a.ascend();
-	std::cout << a.get_tail() << std::endl << *displayed_menu << std::endl;
+
+	a.show();
+
+	a(0);
+
+	Sleep(1000);
+
+	a++;
+	getch();
 }
