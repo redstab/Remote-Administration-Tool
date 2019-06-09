@@ -67,19 +67,22 @@ public:
 		menu_trail.push_back(m);
 		initscr();
 		noecho();
+		curs_set(0);
 		keypad(stdscr, TRUE);
 	}
 
 	void operator()(int selection) {
-		set_selection(selection);
+		
 	}
 
 	homogen_handler& operator++(int) {
-		if (current_selection == display_menu.menu_items.size()) {
+		if (current_selection == display_menu.menu_items.size()-1) {
+			set_selection(-1);
 			current_selection = 0;
 			set_selection(current_selection);
 		}
 		else {
+			set_selection(-1);
 			current_selection++;
 			set_selection(current_selection);
 		}
@@ -88,7 +91,13 @@ public:
 
 	homogen_handler& operator--(int) {
 		if (current_selection == 0) {
-			current_selection = display_menu.menu_items.size();
+			set_selection(-1);
+			current_selection = display_menu.menu_items.size()-1;
+			set_selection(current_selection);
+		}
+		else {
+			set_selection(-1);
+			current_selection--;
 			set_selection(current_selection);
 		}
 		return *this;
@@ -101,8 +110,7 @@ public:
 
 		print_menu(men, display_menu, -1);
 
-		refresh();
-		wrefresh(men);
+		set_selection(0);
 	}
 
 	~homogen_handler() {
@@ -114,8 +122,9 @@ public:
 	}
 
 	void set_selection(int selection) {
-		if (current_selection > 0) {
+		if (selection < 0) {
 			print_item(men, current_selection, false);
+			return;
 		}
 		current_selection = selection;
 		print_item(men, selection, true);
@@ -219,29 +228,6 @@ private:
 	}
 };
 
-template<typename T> void print_menu(menu sample, int level) {
-	const std::type_info& t_value = typeid(item<T>);
-	const std::type_info& t_function = typeid(item<void>);
-	const std::type_info& t_menu = typeid(menu);
-	std::cout << std::string(level * 4, ' ') << sample.menu_title << std::endl;
-	for (auto menu_item : sample.menu_items) {
-		if (menu_item.type() == t_function) {
-			std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<void>>(menu_item).get_title() << std::endl;
-		}
-		else if (menu_item.type() == t_menu) {
-			print_menu<int>(std::any_cast<menu>(menu_item), level + 1);
-		}
-		else if (menu_item.type() == t_value) {
-			std::cout << std::string(level * 4 + 4, ' ') << std::any_cast<item<T>>(menu_item).get_title() << std::endl;
-		}
-	}
-}
-
-std::ostream& operator<<(std::ostream& os, menu const& m) {
-	print_menu<int>(m, 0);
-	return os;
-}
-
 int main() {
 	auto sample = [](int a) {std::cout << "    " << a << std::endl; };
 	auto sample1 = []() {std::cout << "    " << 1 << std::endl; };
@@ -292,10 +278,16 @@ int main() {
 
 	a.show();
 
-	a(0);
+	int key;
 
-	Sleep(1000);
-
-	a++;
-	getch();
+	while ((key = getch()) != 'e') {
+		switch (key) {
+		case KEY_UP:
+			a--;
+			break;
+		case KEY_DOWN:
+			a++;
+			break;
+		}
+	}
 }
