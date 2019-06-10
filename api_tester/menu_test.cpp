@@ -13,13 +13,22 @@
 template<typename T>
 class item {
 public:
-	item(std::string new_title, std::function<void(T)> func) : title(new_title), function(func) {}
+	item(std::string new_title, std::function<void(T)> func, T arg) : title(new_title), function(func), argument(arg) {}
 	std::string get_title() {
 		return title;
 	}
+	void set_argument(T arg) {
+		argument(arg);
+	}
+
+	T get_argument() {
+		return argument;
+	}
+
 	void set_title(std::string new_title) {
 		title = new_title;
 	}
+
 	void execute(T arg) {
 		function(arg);
 	}
@@ -29,6 +38,7 @@ public:
 private:
 	std::string title;
 	std::function<void(T)> function;
+	T argument;
 };
 template<>
 class item<void> {
@@ -65,14 +75,34 @@ template<typename T> class homogen_handler {
 public:
 	homogen_handler(menu m) : handled_menu(m), display_menu(m) {
 		menu_trail.push_back(m);
+		alive = true;
 		initscr();
 		noecho();
 		curs_set(0);
 		keypad(stdscr, TRUE);
 	}
 
-	void operator()(int selection) {
-		
+	void operator()() {
+		std::any selected_item = display_menu.menu_items[current_selection];
+
+		if (selected_item.type() == t_value) {
+			auto itm = std::any_cast<item<T>>(selected_item);
+			itm.execute(itm.get_argument());
+		}
+		else if (selected_item.type() == t_function) {
+			std::any_cast<item<void>>(selected_item).execute();
+		}
+		else if (selected_item.type() == t_menu) {
+			
+			descend();
+		}
+
+	}
+
+	void operator[](int selection) {
+		set_selection(-1);
+		current_selection = selection;
+		set_selection(current_selection);
 	}
 
 	homogen_handler& operator++(int) {
@@ -101,6 +131,24 @@ public:
 			set_selection(current_selection);
 		}
 		return *this;
+	}
+
+	/*
+	
+	Needs +=/+ operator to add a item at runtime at bottom
+	Needs -=/- operator to remove a specifc item at runtime anywhere in the menu recursively 
+	Needs implementation with rat !!!!
+
+	
+	*/
+
+
+	bool isalive() {
+		return alive;
+	}
+
+	int get_key() {
+		return getch();
 	}
 
 	void show() {
@@ -132,8 +180,8 @@ public:
 		wrefresh(men);
 	}
 
-	void descend(std::any selection) {
-		next_menu(display_menu, selection);
+	void descend() {
+		next_menu(display_menu, current_selection);
 	}
 
 	void ascend() {
@@ -155,6 +203,8 @@ private:
 	std::vector<menu> menu_trail;
 
 	WINDOW* men;
+
+	bool alive;
 
 	int current_selection = 0;
 
@@ -193,6 +243,7 @@ private:
 			title = std::any_cast<menu>(current_item).menu_title;
 		}
 		if (selected) {
+			
 			wattron(win, A_STANDOUT);
 			mvwprintw(win, 1 + index, 2, title.c_str());
 			wattroff(win, A_STANDOUT);
@@ -215,39 +266,51 @@ private:
 		}
 	}
 
+	void redraw_menu(WINDOW* _menu) {
+		wclear(_menu);
+		wrefresh(_menu);
+		show();
+	}
+
 	void next_menu(menu _menu, int selection) {
 		if (selection == -1) {
 			if (menu_trail.size() >= 2) {
 				display_menu = (menu_trail.end()[-2]);
 				menu_trail.erase(menu_trail.end() - 1);
+				redraw_menu(men);
 			}
 		}
 		else if (selection < _menu.menu_items.size() && _menu.menu_items[selection].type() == t_menu) {
 			display_menu = std::any_cast<menu>(_menu.menu_items[selection]);
+			menu_trail.push_back(display_menu);
+			redraw_menu(men);
 		}
 	}
 };
 
 int main() {
-	auto sample = [](int a) {std::cout << "    " << a << std::endl; };
-	auto sample1 = []() {std::cout << "    " << 1 << std::endl; };
+	auto sample = [](int a) {mvprintw(0,0, "%d", rand()*a); };
+	auto sample1 = []() {mvprintw(1,0, "%d", rand()*10); };
 
 	menu aa("Sample Title", {
-			item<int>("s", sample),
-			item<void>("ss", sample1),
-			item<int>("s", sample),
-			item<int>("ss", sample),
-			item<int>("s", sample),
-			item<void>("s", sample1),
+			item<int>("Test Item", sample, 1),
+			item<void>("Testing Items", sample1),
+			item<int>("Test Item", sample, 1),
+			item<int>("Testing Items", sample, 1),
+			item<int>("Test Item", sample, 1),
+			item<void>("Test Item", sample1),
 			menu("Hello World", {
 				menu("Hello World", {
 					menu("Hello World", {
-						item<int>("s", sample),
-						item<int>("ss", sample)
+						item<int>("Test Item", sample, 1),
+						item<int>("Testing Items", sample, 1)
 					}),
-					item<int>("ss", sample)
+					item<int>("Testing Items", sample, 1),
+					item<int>("Testing Items", sample, 1)
 				}),
-				item<int>("ss", sample)
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1)
 			}),
 			menu("Hello World", {
 				menu("Hello World", {
@@ -255,22 +318,25 @@ int main() {
 						menu("Hello World", {
 							menu("Hello World", {
 								menu("Hello World", {
-									item<int>("s", sample),
-									item<int>("ss", sample)
+									item<int>("Test Item", sample, 1),
+									item<int>("Testing Items", sample, 1)
 								}),
-								item<int>("ss", sample)
+								item<int>("Testing Items", sample, 1)
 							}),
-							item<int>("ss", sample)
+							item<int>("Testing Items", sample, 1),
+							item<int>("Testing Items", sample, 1),
+							item<int>("Testing Items", sample, 1)
 						}),
-						item<int>("ss", sample)
+						item<int>("Testing Items", sample, 1),
+						item<int>("Testing Items", sample, 1)
 					}),
-					item<int>("ss", sample)
+					item<int>("Testing Items", sample, 1)
 				}),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
-				item<int>("ss", sample),
-				item<int>("ss", sample)
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1),
+				item<int>("Testing Items", sample, 1)
 			}),
 		});
 
@@ -278,16 +344,23 @@ int main() {
 
 	a.show();
 
-	int key;
+	while (a.isalive()) {
 
-	while ((key = getch()) != 'e') {
-		switch (key) {
-		case KEY_UP:
-			a--;
-			break;
-		case KEY_DOWN:
-			a++;
-			break;
+		switch (a.get_key()) {
+
+			case KEY_UP:
+				a--;
+				break;
+			case KEY_DOWN:
+				a++;
+				break;
+			case '\n':
+				a();
+				break;
+			case '\b':
+				a.ascend();
+				break;
+
 		}
 	}
 }
