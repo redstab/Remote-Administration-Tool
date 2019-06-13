@@ -62,19 +62,25 @@ private:
 };
 
 struct menu {
-	menu(std::string title, std::initializer_list<std::any> items) : menu_items(items), menu_title(title) {}
+	menu(std::string title, std::initializer_list<std::any> items) {
+		menu_title = title;
+
+		if (items.size() == 0) {
+			menu_items.push_back(item<void>("", []{})); // If menu has no items, this will backfire before you know it
+		}
+		else {
+			menu_items = items;
+		}
+	};
 	std::vector<std::any> menu_items;
 	std::string menu_title;
 
-	bool operator==(menu& input) {
-		return menu_title == input.menu_title && menu_items.size() == input.menu_items.size();
-	}
 };
 
 template<typename T> class homogen_handler {
 public:
 	homogen_handler(menu m) : handled_menu(m), display_menu(m) {
-		menu_trail.push_back(m);
+		menu_trail.push_back(display_menu);
 		alive = true;
 		initscr();
 		noecho();
@@ -132,6 +138,21 @@ public:
 		}
 		return *this;
 	}
+
+	homogen_handler& operator+=(std::any _item) {
+
+		if (_item.type() == t_value || _item.type() == t_function || _item.type() == t_menu) {
+			menu_trail.back().menu_items.push_back(_item);
+			display_menu = menu_trail.back();
+		}
+		return *this;
+	}
+
+	homogen_handler& operator+(std::any _item) {
+		operator+=(_item);
+		return *this;
+	}
+
 
 	/*
 	
@@ -341,6 +362,13 @@ int main() {
 		});
 
 	homogen_handler<int> a(aa);
+
+	a += menu("Hello World1", {
+			item<int>("Test Item", sample, 1),
+			item<int>("Testing Items", sample, 1)
+		});
+
+	a + menu("TESTING MENU", {});
 
 	a.show();
 
